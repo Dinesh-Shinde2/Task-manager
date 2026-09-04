@@ -22,18 +22,23 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
 # Safely encode special characters like @ in PostgreSQL passwords if unencoded
 if SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "@" in SQLALCHEMY_DATABASE_URL:
     try:
-        # Split schema and rest
         prefix, rest = SQLALCHEMY_DATABASE_URL.split("://", 1)
         if "@" in rest:
             user_pass, host_db = rest.rsplit("@", 1)
             if ":" in user_pass:
                 user, password = user_pass.split(":", 1)
-                # Encode password if unencoded
                 if "%" not in password:
                     encoded_password = urllib.parse.quote_plus(password)
                     SQLALCHEMY_DATABASE_URL = f"{prefix}://{user}:{encoded_password}@{host_db}"
-    except Exception as e:
+    except Exception:
         pass
+
+# Enable SSL mode for remote PostgreSQL (Supabase / Render)
+if SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "sslmode" not in SQLALCHEMY_DATABASE_URL:
+    if "?" in SQLALCHEMY_DATABASE_URL:
+        SQLALCHEMY_DATABASE_URL += "&sslmode=require"
+    else:
+        SQLALCHEMY_DATABASE_URL += "?sslmode=require"
 
 connect_args = {}
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
