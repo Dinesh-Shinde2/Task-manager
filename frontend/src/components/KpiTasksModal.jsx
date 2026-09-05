@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { taskAPI } from '../services/api';
-import { X, Search, ArrowUpRight, Layers, Clock, Flame, CheckCircle2, SearchX, Plus, ExternalLink } from 'lucide-react';
+import { X, Search, ArrowUpRight, Layers, Clock, Flame, CheckCircle2, SearchX, ExternalLink } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 
-export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, viewType = 'all_tasks', onCreateTask }) {
+export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, viewType = 'all_tasks' }) {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,9 +80,9 @@ export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, vi
     (t.assignee_name && t.assignee_name.toLowerCase().includes(searchQuery.toLowerCase()))
   ) : tasks;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 my-auto">
         
         {/* Modal Header */}
         <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
@@ -137,29 +138,12 @@ export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, vi
               Loading tasks...
             </div>
           ) : filteredTasks.length === 0 ? (
-            <div className="py-12 text-center space-y-3 max-w-sm mx-auto">
+            <div className="py-12 text-center space-y-2 max-w-sm mx-auto">
               <div className="h-12 w-12 bg-slate-100 text-slate-400 rounded-2xl mx-auto flex items-center justify-center">
                 <SearchX className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-slate-700 text-sm">No tasks in "{title}"</h3>
-              
-              {statusFilter === 'Completed' ? (
-                <p className="text-xs text-slate-500">
-                  Completed tasks will automatically appear here once active tasks are marked finished.
-                </p>
-              ) : (
-                <>
-                  <p className="text-xs text-slate-500">There are currently no tasks matching this criteria.</p>
-                  {onCreateTask && (
-                    <button
-                      onClick={() => { onClose(); onCreateTask(); }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Create Task Now
-                    </button>
-                  )}
-                </>
-              )}
+              <p className="text-xs text-slate-500">There are currently no tasks matching this status criteria.</p>
             </div>
           ) : (
             <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-sm">
@@ -235,6 +219,7 @@ export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, vi
         onTaskUpdated={() => fetchFilteredTasks()}
       />
 
-    </div>
+    </div>,
+    document.body
   );
 }

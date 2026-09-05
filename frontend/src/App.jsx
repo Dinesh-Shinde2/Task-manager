@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-medium">
+      <div className="min-h-screen bg-[#faf8ff] flex items-center justify-center text-slate-500 font-medium text-sm">
         Authenticating session...
       </div>
     );
@@ -45,16 +45,20 @@ function MainLayout() {
   const [isGlobalCreateOpen, setIsGlobalCreateOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        onCreateClick={() => setIsGlobalCreateOpen(true)}
-      />
+    <div className="min-h-screen bg-[#faf8ff] flex text-slate-800 antialiased">
+      
+      {/* Fixed Sidebar on the left (top-0 to bottom-0) */}
+      <Sidebar />
 
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+      {/* Main Content Area pushed to the right of fixed Sidebar */}
+      <div className="flex-1 flex flex-col min-w-0 pl-64">
+        <Navbar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onCreateClick={() => setIsGlobalCreateOpen(true)}
+        />
+
+        <main className="flex-1 px-8 py-6 bg-[#faf8ff]">
           <Routes>
             <Route path="/" element={<DashboardPage searchTerm={searchTerm} setSearchTerm={setSearchTerm} />} />
             <Route path="/my-tasks" element={<MyTasksPage searchTerm={searchTerm} />} />
@@ -78,7 +82,6 @@ function MainLayout() {
         isOpen={isGlobalCreateOpen}
         onClose={() => setIsGlobalCreateOpen(false)}
         onTaskCreated={() => {
-          // Trigger refresh by reloading current page or location
           window.location.reload();
         }}
       />

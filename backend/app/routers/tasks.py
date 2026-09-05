@@ -232,7 +232,7 @@ def create_task(
     db.add(act)
 
     # Notification
-    if assignee_id and assignee_id != current_user.id:
+    if assignee_id:
         notif = Notification(
             user_id=assignee_id,
             title="Task Assigned",
@@ -332,13 +332,12 @@ def update_task(
         db.add(act)
 
         # Notify new assignee
-        if target_user.id != current_user.id:
-            db.add(Notification(
-                user_id=target_user.id,
-                title="Task Reassigned",
-                message=f"Task {task.task_id} has been assigned to you by {current_user.name}.",
-                task_id=task.id
-            ))
+        db.add(Notification(
+            user_id=target_user.id,
+            title="Task Reassigned",
+            message=f"Task {task.task_id} ({task.title}) has been assigned to you by {current_user.name}.",
+            task_id=task.id
+        ))
 
     task.updated_at = datetime.datetime.utcnow()
     db.commit()

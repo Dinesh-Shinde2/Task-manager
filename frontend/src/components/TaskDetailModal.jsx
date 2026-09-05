@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI, commentAPI, attachmentAPI } from '../services/api';
 import ConfirmModal from './ConfirmModal';
@@ -151,9 +152,9 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-8 overflow-hidden animate-in fade-in zoom-in-95">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-auto overflow-hidden animate-in fade-in zoom-in-95">
         
         {loading ? (
           <div className="p-12 text-center text-slate-500 font-medium">Loading task details...</div>
@@ -386,6 +387,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated
         />
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
