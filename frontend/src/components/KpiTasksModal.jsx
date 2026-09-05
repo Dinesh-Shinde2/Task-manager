@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { taskAPI } from '../services/api';
-import { X, Search, ArrowUpRight, CheckSquare, Layers, Clock, Flame, CheckCircle2, SearchX, Plus } from 'lucide-react';
+import { X, Search, ArrowUpRight, Layers, Clock, Flame, CheckCircle2, SearchX, Plus, ExternalLink } from 'lucide-react';
 import TaskDetailModal from './TaskDetailModal';
 
 export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, viewType = 'all_tasks', onCreateTask }) {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +34,17 @@ export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, vi
   };
 
   if (!isOpen) return null;
+
+  const handleNavigateToPage = () => {
+    onClose();
+    if (viewType === 'my_tasks') {
+      navigate('/my-tasks');
+    } else if (viewType === 'team_tasks') {
+      navigate('/team-tasks');
+    } else {
+      navigate('/all-tasks');
+    }
+  };
 
   const getPriorityBadge = (p) => {
     switch (p) {
@@ -87,12 +100,20 @@ export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, vi
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleNavigateToPage}
+              className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1"
+            >
+              Full Page <ExternalLink className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Search Bar */}
@@ -121,14 +142,23 @@ export default function KpiTasksModal({ isOpen, onClose, title, statusFilter, vi
                 <SearchX className="h-6 w-6" />
               </div>
               <h3 className="font-bold text-slate-700 text-sm">No tasks in "{title}"</h3>
-              <p className="text-xs text-slate-500">There are currently no tasks matching this criteria.</p>
-              {onCreateTask && (
-                <button
-                  onClick={() => { onClose(); onCreateTask(); }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Create Task Now
-                </button>
+              
+              {statusFilter === 'Completed' ? (
+                <p className="text-xs text-slate-500">
+                  Completed tasks will automatically appear here once active tasks are marked finished.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-500">There are currently no tasks matching this criteria.</p>
+                  {onCreateTask && (
+                    <button
+                      onClick={() => { onClose(); onCreateTask(); }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Create Task Now
+                    </button>
+                  )}
+                </>
               )}
             </div>
           ) : (
