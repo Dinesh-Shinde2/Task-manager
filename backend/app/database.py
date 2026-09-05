@@ -33,7 +33,7 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "@" in SQLALCHEMY_DAT
     except Exception:
         pass
 
-# Enable SSL mode for remote PostgreSQL (Supabase / Render)
+# Enable SSL mode for remote PostgreSQL (Supabase / Render / Neon) if not specified
 if SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "sslmode" not in SQLALCHEMY_DATABASE_URL:
     if "?" in SQLALCHEMY_DATABASE_URL:
         SQLALCHEMY_DATABASE_URL += "&sslmode=require"
@@ -41,19 +41,27 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "sslmode" not in SQLA
         SQLALCHEMY_DATABASE_URL += "?sslmode=require"
 
 connect_args = {}
+engine_kwargs = {
+    "pool_pre_ping": True,
+}
+
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+else:
+    engine_kwargs["pool_recycle"] = 300
+    engine_kwargs["pool_size"] = 5
+    engine_kwargs["max_overflow"] = 10
 
 # Attempt engine creation with automatic fallback to local SQLite if remote DB is unreachable
 try:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args, **engine_kwargs)
     with engine.connect() as test_conn:
-        pass
+        print("Connected to primary database successfully.")
 except Exception as err:
     print(f"Notice: Unable to connect to primary DB ({err}). Falling back to local SQLite database.")
     SQLALCHEMY_DATABASE_URL = "sqlite:///./task_manager.db"
     connect_args = {"check_same_thread": False}
-    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

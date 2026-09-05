@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy.orm import Session
 from .database import Base, engine, SessionLocal
-from .models import User, Team, TeamMember
+from .models import User, Team, TeamMember, Task
 from .auth import get_password_hash
 
 def seed_db():
@@ -47,6 +47,54 @@ def seed_db():
             ).first()
             if not existing_member:
                 db.add(TeamMember(team_id=admin_team.id, user_id=admin_user.id))
+            db.commit()
+
+        # 3. Seed Sample Initial Tasks if database has 0 tasks
+        task_count = db.query(Task).count()
+        if task_count == 0:
+            today_str = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+            sample_tasks = [
+                Task(
+                    task_id="CORE-104",
+                    title="Q3 Enterprise Security Audit",
+                    description="Compliance review and penetration evidence gathering for SOC2 Type II certification",
+                    task_type="Testing",
+                    priority="High",
+                    status="In Progress",
+                    created_by_id=admin_user.id,
+                    assigned_to_id=admin_user.id,
+                    team_id=admin_team.id,
+                    due_date=today_str,
+                    scheduled_at="14:00"
+                ),
+                Task(
+                    task_id="DS-88",
+                    title="Design System Migration to Tailwind",
+                    description="Refactor atomic button and modal components into unified CSS token contracts",
+                    task_type="Development",
+                    priority="Medium",
+                    status="Triage",
+                    created_by_id=admin_user.id,
+                    assigned_to_id=admin_user.id,
+                    team_id=admin_team.id,
+                    due_date=today_str,
+                    scheduled_at="16:00"
+                ),
+                Task(
+                    task_id="BE-492",
+                    title="API Gateway Rate Limiting Policy",
+                    description="Implement Redis token bucket algorithm for public v2 endpoints to prevent DDoS",
+                    task_type="Development",
+                    priority="Critical",
+                    status="Pending",
+                    created_by_id=admin_user.id,
+                    assigned_to_id=admin_user.id,
+                    team_id=admin_team.id,
+                    due_date=today_str,
+                    scheduled_at="18:00"
+                )
+            ]
+            db.add_all(sample_tasks)
             db.commit()
 
         print("Database seed verified: dinesh2202 admin is ready.")
