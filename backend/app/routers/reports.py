@@ -26,7 +26,7 @@ def get_dashboard_summary(
         in_progress=my_tasks_query.filter(Task.status == "In Progress").count(),
         completed=my_tasks_query.filter(Task.status == "Completed").count(),
         deleted=my_tasks_query.filter(Task.status == "Deleted").count(),
-        total=my_tasks_query.count()
+        total=my_tasks_query.filter(Task.status != "Deleted").count()
     )
 
     # 2. Team Tasks Summary (status counts for team_id)
@@ -42,7 +42,7 @@ def get_dashboard_summary(
             in_progress=team_query.filter(Task.status == "In Progress").count(),
             completed=team_query.filter(Task.status == "Completed").count(),
             deleted=team_query.filter(Task.status == "Deleted").count(),
-            total=team_query.count()
+            total=team_query.filter(Task.status != "Deleted").count()
         )
 
     # 3. Recent Tasks (top 5 active tasks relevant to user/team)
@@ -81,7 +81,7 @@ def get_admin_metrics(
         in_progress=sum(1 for t in all_tasks if t.status == "In Progress"),
         completed=sum(1 for t in all_tasks if t.status == "Completed"),
         deleted=sum(1 for t in all_tasks if t.status == "Deleted"),
-        total=len(all_tasks)
+        total=sum(1 for t in all_tasks if t.status != "Deleted")
     )
 
     # Team Performance breakdown
