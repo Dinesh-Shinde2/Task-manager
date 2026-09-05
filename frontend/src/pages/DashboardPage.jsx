@@ -13,15 +13,14 @@ import {
   Users, 
   ShieldCheck, 
   FolderKanban, 
-  Calendar, 
-  ListFilter,
   Activity,
-  UserCheck
+  MousePointerClick
 } from 'lucide-react';
 import CreateTaskModal from '../components/CreateTaskModal';
 import TaskDetailModal from '../components/TaskDetailModal';
+import KpiTasksModal from '../components/KpiTasksModal';
 
-export default function DashboardPage({ searchTerm, setSearchTerm }) {
+export default function DashboardPage({ searchTerm }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -32,6 +31,14 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [summaryView, setSummaryView] = useState('my'); // 'my' or 'team'
+
+  // State for KPI drill-down modal
+  const [kpiModal, setKpiModal] = useState({
+    isOpen: false,
+    title: '',
+    statusFilter: null,
+    viewType: 'all_tasks'
+  });
 
   const fetchDashboard = async () => {
     try {
@@ -57,6 +64,16 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  const openKpiModal = (title, statusFilter) => {
+    const viewType = summaryView === 'my' ? 'my_tasks' : (user?.role === 'Admin' ? 'all_tasks' : 'team_tasks');
+    setKpiModal({
+      isOpen: true,
+      title,
+      statusFilter,
+      viewType
+    });
+  };
 
   const getPriorityBadge = (p) => {
     switch (p) {
@@ -110,7 +127,6 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
          --------------------------------------------------------- */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
         
-        {/* Subtle decorative gradient top bar */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
 
         <div className="space-y-1">
@@ -124,8 +140,11 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Welcome back, {user?.name} 👋
           </h1>
-          <p className="text-slate-500 text-xs sm:text-sm max-w-xl">
-            Overview of your tasks, team workload, and recent activity logs.
+          <p className="text-slate-500 text-xs sm:text-sm max-w-xl flex items-center gap-1.5">
+            <span>Overview of your tasks.</span>
+            <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md inline-flex items-center gap-1 text-[11px]">
+              <MousePointerClick className="h-3 w-3" /> Click any KPI card to view details
+            </span>
           </p>
         </div>
 
@@ -141,15 +160,19 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
       </div>
 
       {/* ---------------------------------------------------------
-          Key Metric Cards (4 Executive KPI Cards)
+          Key Metric Cards (4 Clickable Executive KPI Cards)
          --------------------------------------------------------- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         
         {/* Total Tasks Card */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow transition-all relative">
+        <div 
+          onClick={() => openKpiModal('All Active Tasks', null)}
+          className="bg-white border border-slate-200/90 hover:border-blue-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group relative"
+          title="Click to view all tasks"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tasks</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors uppercase tracking-wider">Total Tasks</span>
+            <div className="p-2 bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white rounded-xl transition-colors">
               <Layers className="h-5 w-5" />
             </div>
           </div>
@@ -159,17 +182,20 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
               {completionRate}% Done
             </span>
           </div>
-          {/* Progress bar */}
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
             <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${completionRate}%` }}></div>
           </div>
         </div>
 
         {/* In Progress Card */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow transition-all">
+        <div 
+          onClick={() => openKpiModal('In Progress & Scheduled Tasks', 'In Progress,Scheduled')}
+          className="bg-white border border-slate-200/90 hover:border-blue-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          title="Click to view In Progress tasks"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">In Progress</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors uppercase tracking-wider">In Progress</span>
+            <div className="p-2 bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white rounded-xl transition-colors">
               <Flame className="h-5 w-5" />
             </div>
           </div>
@@ -183,10 +209,14 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
         </div>
 
         {/* Pending & Triage Card */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow transition-all">
+        <div 
+          onClick={() => openKpiModal('Pending & Triage Tasks', 'Pending,Triage')}
+          className="bg-white border border-slate-200/90 hover:border-amber-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          title="Click to view Pending tasks"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pending Action</span>
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-amber-600 transition-colors uppercase tracking-wider">Pending Action</span>
+            <div className="p-2 bg-amber-50 group-hover:bg-amber-500 text-amber-600 group-hover:text-white rounded-xl transition-colors">
               <Clock className="h-5 w-5" />
             </div>
           </div>
@@ -200,10 +230,14 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
         </div>
 
         {/* Completed Card */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow transition-all">
+        <div 
+          onClick={() => openKpiModal('Completed Tasks', 'Completed')}
+          className="bg-white border border-slate-200/90 hover:border-emerald-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          title="Click to view Completed tasks"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completed</span>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+            <span className="text-xs font-bold text-slate-500 group-hover:text-emerald-600 transition-colors uppercase tracking-wider">Completed</span>
+            <div className="p-2 bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white rounded-xl transition-colors">
               <CheckCircle2 className="h-5 w-5" />
             </div>
           </div>
@@ -223,10 +257,10 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
          --------------------------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LEFT COLUMN (2 Cols wide: Summary Tabs & Recent Tasks) */}
+        {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Status Breakdown Bar Card */}
+          {/* Clickable Status Lifecycles Breakdown Card */}
           <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -234,7 +268,6 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                 <span className="text-xs font-semibold text-slate-500">({summaryView === 'my' ? 'My Tasks' : `Team: ${teamName}`})</span>
               </div>
 
-              {/* View Selector Pills */}
               <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-bold">
                 <button
                   onClick={() => setSummaryView('my')}
@@ -251,30 +284,50 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
               </div>
             </div>
 
-            {/* Status Pills Grid */}
+            {/* Clickable Status Pills Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
               
-              <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 text-center">
+              <div 
+                onClick={() => openKpiModal('Pending Tasks', 'Pending')}
+                className="bg-amber-50/80 hover:bg-amber-100/90 border border-amber-200/80 rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-[1.02] shadow-xs"
+                title="Click to view Pending tasks"
+              >
                 <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Pending</span>
                 <span className="text-xl font-bold text-slate-800 mt-1 block">{activeSummary.pending || 0}</span>
               </div>
 
-              <div className="bg-purple-50/80 border border-purple-200/80 rounded-xl p-3 text-center">
+              <div 
+                onClick={() => openKpiModal('Scheduled Tasks', 'Scheduled')}
+                className="bg-purple-50/80 hover:bg-purple-100/90 border border-purple-200/80 rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-[1.02] shadow-xs"
+                title="Click to view Scheduled tasks"
+              >
                 <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider block">Scheduled</span>
                 <span className="text-xl font-bold text-slate-800 mt-1 block">{activeSummary.scheduled || 0}</span>
               </div>
 
-              <div className="bg-indigo-50/80 border border-indigo-200/80 rounded-xl p-3 text-center">
+              <div 
+                onClick={() => openKpiModal('Triage Tasks', 'Triage')}
+                className="bg-indigo-50/80 hover:bg-indigo-100/90 border border-indigo-200/80 rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-[1.02] shadow-xs"
+                title="Click to view Triage tasks"
+              >
                 <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Triage</span>
                 <span className="text-xl font-bold text-slate-800 mt-1 block">{activeSummary.triage || 0}</span>
               </div>
 
-              <div className="bg-blue-50/80 border border-blue-200/80 rounded-xl p-3 text-center">
+              <div 
+                onClick={() => openKpiModal('In Progress Tasks', 'In Progress')}
+                className="bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200/80 rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-[1.02] shadow-xs"
+                title="Click to view In Progress tasks"
+              >
                 <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">In Progress</span>
                 <span className="text-xl font-bold text-slate-800 mt-1 block">{activeSummary.in_progress || 0}</span>
               </div>
 
-              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-3 text-center">
+              <div 
+                onClick={() => openKpiModal('Completed Tasks', 'Completed')}
+                className="bg-emerald-50/80 hover:bg-emerald-100/90 border border-emerald-200/80 rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-[1.02] shadow-xs"
+                title="Click to view Completed tasks"
+              >
                 <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Completed</span>
                 <span className="text-xl font-bold text-slate-800 mt-1 block">{activeSummary.completed || 0}</span>
               </div>
@@ -360,7 +413,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
 
         </div>
 
-        {/* RIGHT COLUMN (1 Col wide: Quick Actions & Team Widget & System Status) */}
+        {/* RIGHT COLUMN */}
         <div className="space-y-6">
           
           {/* Quick Actions Shortcuts Card */}
@@ -486,6 +539,15 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
         isOpen={!!selectedTaskId}
         onClose={() => setSelectedTaskId(null)}
         onTaskUpdated={() => fetchDashboard()}
+      />
+
+      <KpiTasksModal
+        isOpen={kpiModal.isOpen}
+        onClose={() => setKpiModal({ ...kpiModal, isOpen: false })}
+        title={kpiModal.title}
+        statusFilter={kpiModal.statusFilter}
+        viewType={kpiModal.viewType}
+        onCreateTask={() => setIsCreateOpen(true)}
       />
 
     </div>
