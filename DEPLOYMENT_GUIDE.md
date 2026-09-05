@@ -35,7 +35,7 @@ This step-by-step guide walks you through deploying your **Task Manager** applic
    - `DATABASE_URL` = `postgresql://postgres....` (from Step 1)
    - `SECRET_KEY` = `your-super-secret-jwt-key-2026`
 7. Click **Create Web Service**. Render will deploy your API and provide a live URL, e.g.:
-   `https://task-manager-api.onrender.com`
+   `https://task-manager-9luq.onrender.com`
 
 ---
 
@@ -48,8 +48,8 @@ This step-by-step guide walks you through deploying your **Task Manager** applic
    - **Root Directory**: `frontend`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-4. Add **Environment Variable** in Vercel settings:
-   - `VITE_API_BASE_URL` = `https://task-manager-api.onrender.com/api` (your Render URL from Step 2)
+4. Add **Environment Variable** in Vercel settings (optional, since frontend now defaults to this automatically):
+   - `VITE_API_BASE_URL` = `https://task-manager-9luq.onrender.com/api`
 5. Click **Deploy**.
 6. Vercel will give you your live URL, e.g.: `https://task-manager.vercel.app`!
 

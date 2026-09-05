@@ -1,9 +1,16 @@
 import axios from 'axios';
 
-// Support VITE_API_BASE_URL for Vercel deployment, default to '/api' for local dev proxy
+// Support VITE_API_BASE_URL for Vercel deployment, default to live Render URL in production
 const getBaseURL = () => {
   let url = import.meta.env.VITE_API_BASE_URL;
-  if (!url) return '/api';
+
+  if (!url) {
+    // In production builds (Vercel), default to the live Render backend URL if env var is missing
+    if (import.meta.env.PROD) {
+      return 'https://task-manager-9luq.onrender.com/api';
+    }
+    return '/api';
+  }
 
   url = url.trim().replace(/\/+$/, '');
   if (!url.endsWith('/api')) {
