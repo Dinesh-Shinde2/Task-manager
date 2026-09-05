@@ -44,9 +44,16 @@ connect_args = {}
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args=connect_args
-)
+# Attempt engine creation with automatic fallback to local SQLite if remote DB is unreachable
+try:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+    with engine.connect() as test_conn:
+        pass
+except Exception as err:
+    print(f"Notice: Unable to connect to primary DB ({err}). Falling back to local SQLite database.")
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./task_manager.db"
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
