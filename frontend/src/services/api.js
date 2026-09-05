@@ -1,7 +1,18 @@
 import axios from 'axios';
 
 // Support VITE_API_BASE_URL for Vercel deployment, default to '/api' for local dev proxy
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const getBaseURL = () => {
+  let url = import.meta.env.VITE_API_BASE_URL;
+  if (!url) return '/api';
+
+  url = url.trim().replace(/\/+$/, '');
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
+const API_BASE_URL = getBaseURL();
 
 const api = axios.create({
   baseURL: API_BASE_URL,

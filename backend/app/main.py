@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -15,6 +15,17 @@ app = FastAPI(
     description="Web-based Task Manager backend in FastAPI",
     version="1.0.0"
 )
+
+# Middleware to rewrite routes missing /api prefix (e.g. /auth/login -> /api/auth/login)
+@app.middleware("http")
+async def prefix_api_middleware(request: Request, call_next):
+    path = request.url.path
+    if not path.startswith("/api") and not path.startswith("/docs") and not path.startswith("/openapi.json") and not path.startswith("/uploads") and path != "/":
+        new_path = "/api" + path
+        request.scope["path"] = new_path
+        request.scope["raw_path"] = new_path.encode("ascii")
+    response = await call_next(request)
+    return response
 
 # Configure CORS
 app.add_middleware(
