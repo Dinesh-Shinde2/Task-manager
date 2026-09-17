@@ -609,7 +609,6 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 text-xs font-bold">
                   <TrendingUp className="w-3.5 h-3.5 text-slate-900" /> {myCompletedPct}% rate
                 </span>
-                <span className="text-[11px] text-slate-400 mt-0.5 font-medium">Cycle time: 1.8d avg</span>
               </div>
             </div>
 
