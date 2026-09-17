@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { reportAPI, userAPI, taskAPI } from '../services/api';
+import { reportAPI, userAPI, taskAPI, teamAPI } from '../services/api';
 import { 
   BarChart3, 
   Calendar as CalendarIcon, 
@@ -34,6 +34,8 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   const [adminMetrics, setAdminMetrics] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [allTasksList, setAllTasksList] = useState([]);
+  const [teamsList, setTeamsList] = useState([]);
+  const [teamFilter, setTeamFilter] = useState('All');
   const [loading, setLoading] = useState(true);
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -93,6 +95,13 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
         } catch (e) {
           console.error(e);
         }
+      }
+
+      try {
+        const teamsRes = await teamAPI.getTeams();
+        setTeamsList(Array.isArray(teamsRes?.data) ? teamsRes.data : []);
+      } catch (e) {
+        console.error(e);
       }
 
       if (user?.team_id) {
@@ -285,8 +294,9 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
 
     const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
     const matchesPriority = priorityFilter === 'All' || t.priority === priorityFilter;
+    const matchesTeam = teamFilter === 'All' || t.team_name === teamFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesStatus && matchesPriority && matchesTeam;
   });
 
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -494,6 +504,46 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
             </div>
           </div>
         </header>
+      </div>
+
+      {/* Horizontal Team Filter Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 border-b border-slate-200/80">
+        <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1.5 mr-1">
+          <Users className="w-3.5 h-3.5 text-slate-700" /> Filter Team:
+        </span>
+        <button
+          type="button"
+          onClick={() => setTeamFilter('All')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            teamFilter === 'All'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          All Teams ({tasksToDisplay.length})
+        </button>
+        {teamsList.map((tm) => {
+          const teamTaskCount = tasksToDisplay.filter(t => t.team_name === tm.name).length;
+          return (
+            <button
+              key={tm.id}
+              type="button"
+              onClick={() => setTeamFilter(tm.name)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                teamFilter === tm.name
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <span>{tm.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                teamFilter === tm.name ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}>
+                {teamTaskCount}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* KPI Personal Tasks Summary Cards */}
@@ -890,6 +940,18 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
               <option value="Medium">Medium</option>
               <option value="Normal">Normal</option>
             </select>
+
+            {/* Team Filter */}
+            <select
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              className="h-8 px-3 bg-white text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 shadow-2xs shrink-0 cursor-pointer focus:outline-none"
+            >
+              <option value="All">Team: All</option>
+              {teamsList.map(tm => (
+                <option key={tm.id} value={tm.name}>{tm.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-auto">
@@ -916,6 +978,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                   <input type="checkbox" className="rounded w-3.5 h-3.5 accent-blue-600 cursor-pointer" />
                 </th>
                 <th className="px-4 py-2">Task Title & Details</th>
+                <th className="px-4 py-2">Team</th>
                 <th className="px-4 py-2">Assigned To</th>
                 <th className="px-4 py-2">Time Tracked</th>
                 <th className="px-4 py-2">Priority</th>
@@ -927,7 +990,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
             <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
               {filteredDirectoryTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan={9} className="p-8 text-center text-slate-400 font-medium">
                     No active tasks match your filters.
                   </td>
                 </tr>
@@ -949,7 +1012,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                           className="rounded w-3.5 h-3.5 accent-slate-900 cursor-pointer"
                         />
                       </td>
-                      <td className="px-4 py-2.5 min-w-[280px]">
+                      <td className="px-4 py-2.5 min-w-[260px]">
                         <div className="flex items-start gap-2.5">
                           <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 mt-0.5">
                             {task.task_id}
@@ -981,6 +1044,16 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                             </div>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap font-medium">
+                        {task.team_name ? (
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-[10px] font-bold inline-flex items-center gap-1">
+                            <Users className="w-3 h-3 text-slate-500" />
+                            {task.team_name}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
