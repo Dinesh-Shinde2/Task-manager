@@ -84,6 +84,14 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
                     detail="User account is deactivated. Contact Admin."
                 )
 
+            # Auto-upgrade unhashed/plain-text password in DB to proper bcrypt hash
+            if not user.password_hash.startswith("$2"):
+                try:
+                    user.password_hash = get_password_hash(clean_pass)
+                    db.commit()
+                except Exception:
+                    db.rollback()
+
             access_token = create_access_token(data={"sub": user.user_id, "role": user.role})
             user_res = UserResponse.from_orm(user)
             if user.team:
