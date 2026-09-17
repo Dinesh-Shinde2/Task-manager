@@ -71,13 +71,20 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   });
 
   const fetchDashboard = async () => {
+    if (!user) return;
     try {
       setLoading(true);
       const dashRes = await reportAPI.getDashboardData();
       setDashboardData(dashRes.data);
 
-      const allRes = await taskAPI.getTasks({ view_type: 'all_tasks' });
-      setAllTasksList(allRes.data);
+      try {
+        const viewType = user?.role === 'Admin' ? 'all_tasks' : 'team_tasks';
+        const allRes = await taskAPI.getTasks({ view_type: viewType });
+        setAllTasksList(Array.isArray(allRes?.data) ? allRes.data : []);
+      } catch (e) {
+        console.error(e);
+        setAllTasksList([]);
+      }
 
       if (user?.role === 'Admin') {
         try {
@@ -91,7 +98,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
       if (user?.team_id) {
         try {
           const membersRes = await userAPI.getUsers(user.team_id);
-          setTeamMembers(membersRes.data);
+          setTeamMembers(Array.isArray(membersRes?.data) ? membersRes.data : []);
         } catch (e) {
           console.error(e);
         }
@@ -104,8 +111,10 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   };
 
   useEffect(() => {
-    fetchDashboard();
-  }, []);
+    if (user) {
+      fetchDashboard();
+    }
+  }, [user]);
 
   // Handle Preset Button Clicks in Date Range Picker
   const handlePresetSelect = (presetName) => {
@@ -262,12 +271,17 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   const teamPendingPct = teamTotal > 0 ? ((teamPending / teamTotal) * 100).toFixed(1) : 0;
   const teamCompletionRate = teamTotal > 0 ? Math.round((teamCompleted / teamTotal) * 100) : 0;
 
-  const filteredDirectoryTasks = tasksToDisplay.filter(t => {
+  const filteredDirectoryTasks = (tasksToDisplay || []).filter(t => {
+    if (!t) return false;
     const query = (tableFilterSearch || searchTerm || '').toLowerCase().trim();
+    const title = (t.title || '').toLowerCase();
+    const taskId = (t.task_id || '').toLowerCase();
+    const assignee = (t.assignee_name || '').toLowerCase();
+
     const matchesSearch = !query || 
-      t.title.toLowerCase().includes(query) ||
-      t.task_id.toLowerCase().includes(query) ||
-      (t.assignee_name && t.assignee_name.toLowerCase().includes(query));
+      title.includes(query) ||
+      taskId.includes(query) ||
+      assignee.includes(query);
 
     const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
     const matchesPriority = priorityFilter === 'All' || t.priority === priorityFilter;
@@ -617,7 +631,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                 <CheckCircle2 className="w-3.5 h-3.5 text-slate-700" /> 
                 {myCompleted > 0 ? `${myCompletedPct}% completion rate` : '0% completion rate'}
               </span>
-              <span className="text-[11px] font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-semibold border border-slate-200">{myTasks.length} Assigned</span>
+              <span className="text-[11px] font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-semibold border border-slate-200">{myTotal} Assigned</span>
             </div>
           </div>
 
