@@ -129,17 +129,17 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <UserCheck className="h-6 w-6 text-cyan-600" /> User Management
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <UserCheck className="h-6 w-6 text-slate-900" /> User Management
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <p className="text-slate-500 text-xs font-medium mt-0.5">
             Admin directory to create, edit, activate, or deactivate platform users
           </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
         >
           <Plus className="h-4 w-4" /> Create User
         </button>
@@ -165,7 +165,7 @@ export default function UsersPage() {
               <tbody className="divide-y divide-slate-100">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-5 font-mono text-xs font-bold text-blue-600">
+                    <td className="py-3.5 px-5 font-mono text-xs font-bold text-slate-900">
                       {u.user_id}
                     </td>
                     <td className="py-3.5 px-5 font-semibold text-slate-800">
@@ -177,14 +177,14 @@ export default function UsersPage() {
                     </td>
                     <td className="py-3.5 px-5">
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
-                        u.role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'
+                        u.role === 'Admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}>
                         {u.role}
                       </span>
                     </td>
                     <td className="py-3.5 px-5">
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-                        u.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        u.status === 'Active' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}>
                         {u.status}
                       </span>
@@ -192,7 +192,7 @@ export default function UsersPage() {
                     <td className="py-3.5 px-5 text-right">
                       <button
                         onClick={() => handleOpenEdit(u)}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                         title="Edit User"
                       >
                         <Edit2 className="h-4 w-4" />
@@ -221,8 +221,8 @@ export default function UsersPage() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {error && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-lg flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
+                <div className="p-3 bg-slate-100 border border-slate-300 text-slate-900 text-xs font-semibold rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-slate-900" />
                   <span>{error}</span>
                 </div>
               )}
@@ -237,7 +237,7 @@ export default function UsersPage() {
                   placeholder="e.g. Dinesh Sharma"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -253,7 +253,7 @@ export default function UsersPage() {
                     placeholder="e.g. USR005"
                     value={formData.user_id}
                     onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
+                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none font-mono"
                   />
                 </div>
 
@@ -266,7 +266,7 @@ export default function UsersPage() {
                     placeholder="user@company.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   />
                 </div>
               </div>
@@ -281,7 +281,7 @@ export default function UsersPage() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   />
                 </div>
 
@@ -295,7 +295,7 @@ export default function UsersPage() {
                       placeholder="••••••••"
                       value={formData.confirm_password}
                       onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                      className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                     />
                   </div>
                 )}
@@ -309,7 +309,7 @@ export default function UsersPage() {
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg"
+                    className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   >
                     <option value="Member">Member</option>
                     <option value="Admin">Admin</option>
@@ -323,7 +323,7 @@ export default function UsersPage() {
                   <select
                     value={formData.team_id}
                     onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg"
+                    className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   >
                     <option value="">No Team</option>
                     {teams.map(t => (
@@ -339,7 +339,7 @@ export default function UsersPage() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg"
+                    className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -358,7 +358,7 @@ export default function UsersPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                  className="px-5 py-2 text-xs font-semibold bg-slate-900 hover:bg-black text-white rounded-lg shadow-sm"
                 >
                   {submitting ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
                 </button>

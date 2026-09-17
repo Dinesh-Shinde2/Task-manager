@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
@@ -23,7 +24,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#faf8ff] flex items-center justify-center text-slate-500 font-medium text-sm">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-medium text-sm">
         Authenticating session...
       </div>
     );
@@ -45,7 +46,7 @@ function MainLayout() {
   const [isGlobalCreateOpen, setIsGlobalCreateOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#faf8ff] flex text-slate-800 antialiased">
+    <div className="min-h-screen bg-slate-50 flex text-slate-900 antialiased">
       
       {/* Fixed Sidebar on the left (top-0 to bottom-0) */}
       <Sidebar />
@@ -58,7 +59,7 @@ function MainLayout() {
           onCreateClick={() => setIsGlobalCreateOpen(true)}
         />
 
-        <main className="flex-1 px-8 py-6 bg-[#faf8ff]">
+        <main className="flex-1 px-8 py-6 bg-slate-50">
           <Routes>
             <Route path="/" element={<DashboardPage searchTerm={searchTerm} setSearchTerm={setSearchTerm} />} />
             <Route path="/my-tasks" element={<MyTasksPage searchTerm={searchTerm} />} />
@@ -91,20 +92,22 @@ function MainLayout() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

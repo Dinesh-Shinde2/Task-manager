@@ -105,17 +105,17 @@ export default function TeamsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <FolderKanban className="h-6 w-6 text-purple-600" /> Team Management
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <FolderKanban className="h-6 w-6 text-slate-900" /> Team Management
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <p className="text-slate-500 text-xs font-medium mt-0.5">
             Admin team creation, membership allocation, and team lead assignment
           </p>
         </div>
 
         <button
           onClick={() => { setIsCreateOpen(true); setError(''); }}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
         >
           <Plus className="h-4 w-4" /> Create Team
         </button>
@@ -148,7 +148,7 @@ export default function TeamsPage() {
                     <tr
                       key={t.id}
                       className={`hover:bg-slate-50 transition-colors cursor-pointer ${
-                        selectedTeam?.id === t.id ? 'bg-purple-50/60 font-semibold' : ''
+                        selectedTeam?.id === t.id ? 'bg-slate-100/90 font-semibold' : ''
                       }`}
                       onClick={() => setSelectedTeam(t)}
                     >
@@ -163,7 +163,7 @@ export default function TeamsPage() {
                       </td>
                       <td className="py-3.5 px-5">
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-                          t.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
+                          t.status === 'Active' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {t.status}
                         </span>
@@ -171,7 +171,7 @@ export default function TeamsPage() {
                       <td className="py-3.5 px-5 text-right">
                         <button
                           onClick={() => setSelectedTeam(t)}
-                          className="text-xs text-purple-600 hover:text-purple-800 font-semibold"
+                          className="text-xs text-slate-900 hover:underline font-semibold"
                         >
                           Manage Members →
                         </button>
@@ -191,7 +191,7 @@ export default function TeamsPage() {
               <div className="border-b border-slate-100 pb-3 mb-4">
                 <h3 className="font-bold text-slate-800 text-lg">{selectedTeam.name} Team</h3>
                 <p className="text-xs text-slate-500">{selectedTeam.description || 'No description'}</p>
-                <p className="text-xs text-purple-700 font-medium mt-1">Team Lead: {selectedTeam.team_lead_name || 'None'}</p>
+                <p className="text-xs text-slate-900 font-bold mt-1">Team Lead: {selectedTeam.team_lead_name || 'None'}</p>
               </div>
 
               <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600 mb-3">
@@ -206,13 +206,13 @@ export default function TeamsPage() {
                   selectedTeam.members.map(m => (
                     <div key={m.id} className="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-slate-200">
                       <div className="flex items-center gap-2">
-                        <span className="text-emerald-600 font-bold">☑</span>
+                        <Check className="w-3.5 h-3.5 text-slate-900 shrink-0" />
                         <span className="font-semibold text-slate-800">{m.name}</span>
                         <span className="text-[10px] text-slate-400">({m.user_id})</span>
                       </div>
                       <button
                         onClick={() => handleRemoveMember(m.id)}
-                        className="text-rose-600 hover:text-rose-800 text-[10px] font-semibold hover:underline"
+                        className="text-slate-700 hover:text-black text-[10px] font-semibold hover:underline"
                       >
                         Remove
                       </button>
@@ -244,7 +244,7 @@ export default function TeamsPage() {
                   <button
                     type="submit"
                     disabled={!addMemberUserId}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white rounded-lg text-xs font-semibold disabled:opacity-50"
                   >
                     Add
                   </button>
@@ -273,8 +273,8 @@ export default function TeamsPage() {
 
             <form onSubmit={handleCreateTeam} className="p-6 space-y-4">
               {error && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-lg flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
+                <div className="p-3 bg-slate-100 border border-slate-300 text-slate-900 text-xs font-semibold rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-slate-900" />
                   <span>{error}</span>
                 </div>
               )}
@@ -289,7 +289,7 @@ export default function TeamsPage() {
                   placeholder="e.g. Infrastructure Team"
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -302,7 +302,7 @@ export default function TeamsPage() {
                   placeholder="Team scope or responsibilities..."
                   value={newTeamDesc}
                   onChange={(e) => setNewTeamDesc(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -313,7 +313,7 @@ export default function TeamsPage() {
                 <select
                   value={newTeamLeadId}
                   onChange={(e) => setNewTeamLeadId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                 >
                   <option value="">-- Select Team Lead --</option>
                   {allUsers.map(u => (
@@ -333,7 +333,7 @@ export default function TeamsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                  className="px-5 py-2 text-xs font-semibold bg-slate-900 hover:bg-black text-white rounded-lg shadow-sm"
                 >
                   {submitting ? 'Creating...' : 'Create Team'}
                 </button>

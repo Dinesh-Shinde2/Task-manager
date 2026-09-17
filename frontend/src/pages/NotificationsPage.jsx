@@ -44,10 +44,10 @@ export default function NotificationsPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Bell className="h-6 w-6 text-rose-500" /> Notifications
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <Bell className="h-6 w-6 text-slate-900" /> Notifications
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <p className="text-slate-500 text-xs font-medium mt-0.5">
             Audit feed of task assignments, status changes, and activity alerts
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function NotificationsPage() {
         {notifications.some(n => !n.is_read) && (
           <button
             onClick={handleMarkAllRead}
-            className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
           >
             <CheckCheck className="h-4 w-4" /> Mark All as Read
           </button>
@@ -74,14 +74,14 @@ export default function NotificationsPage() {
             <div
               key={notif.id}
               className={`p-4 flex items-start justify-between gap-4 transition-colors ${
-                notif.is_read ? 'bg-white' : 'bg-blue-50/40'
+                notif.is_read ? 'bg-white' : 'bg-slate-100/70'
               }`}
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-800 text-sm">{notif.title}</span>
                   {!notif.is_read && (
-                    <span className="h-2 w-2 rounded-full bg-blue-600"></span>
+                    <span className="h-2 w-2 rounded-full bg-slate-900"></span>
                   )}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
               {!notif.is_read && (
                 <button
                   onClick={() => handleMarkRead(notif.id)}
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+                  className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition-colors shrink-0"
                   title="Mark as read"
                 >
                   <Check className="h-4 w-4" />

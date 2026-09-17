@@ -40,27 +40,27 @@ export default function Sidebar() {
   }, [user]);
 
   const navLinkClass = ({ isActive }) =>
-    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
       isActive
-        ? 'bg-blue-600 text-white font-bold shadow-xs'
-        : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
+        ? 'bg-slate-900 text-white shadow-xs'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-semibold'
     }`;
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-[#f2f3ff] border-r border-slate-200/80 p-4 flex flex-col justify-between z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)] overflow-y-auto">
+    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-slate-200 p-5 flex flex-col justify-between z-50 overflow-y-auto">
       <div className="flex flex-col space-y-6">
         
         {/* Logo Header */}
         <div className="flex items-center gap-2.5 px-1 py-1">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white text-sm font-bold shadow-xs">
             T
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="text-base text-slate-900 font-extrabold tracking-tight">
+              <span className="text-base font-extrabold tracking-tight text-slate-900">
                 Task Manager
               </span>
-              <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.2 rounded uppercase tracking-wider font-bold">
+              <span className="bg-slate-100 text-slate-800 border border-slate-200 text-[9px] px-1.5 py-0.2 rounded uppercase tracking-wider font-bold">
                 PRO
               </span>
             </div>
@@ -77,7 +77,7 @@ export default function Sidebar() {
             <NavLink to="/" end className={navLinkClass}>
               {({ isActive }) => (
                 <div className="flex items-center gap-2.5">
-                  <LayoutDashboard className={`w-4 h-4 ${isActive ? 'text-white' : 'text-blue-600'}`} />
+                  <LayoutDashboard className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                   <span>Dashboard</span>
                 </div>
               )}
@@ -87,11 +87,11 @@ export default function Sidebar() {
               {({ isActive }) => (
                 <>
                   <div className="flex items-center gap-2.5">
-                    <CheckSquare className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
+                    <CheckSquare className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>My Tasks</span>
                   </div>
                   {myTasksCount > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                       {myTasksCount}
                     </span>
                   )}
@@ -102,7 +102,7 @@ export default function Sidebar() {
             <NavLink to="/team-tasks" className={navLinkClass}>
               {({ isActive }) => (
                 <div className="flex items-center gap-2.5">
-                  <Users className={`w-4 h-4 ${isActive ? 'text-white' : 'text-indigo-600'}`} />
+                  <Users className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                   <span>Team Tasks</span>
                 </div>
               )}
@@ -112,7 +112,7 @@ export default function Sidebar() {
               <NavLink to="/all-tasks" className={navLinkClass}>
                 {({ isActive }) => (
                   <div className="flex items-center gap-2.5">
-                    <ListTodo className={`w-4 h-4 ${isActive ? 'text-white' : 'text-cyan-600'}`} />
+                    <ListTodo className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>All Tasks</span>
                   </div>
                 )}
@@ -122,7 +122,7 @@ export default function Sidebar() {
             <NavLink to="/calendar" className={navLinkClass}>
               {({ isActive }) => (
                 <div className="flex items-center gap-2.5">
-                  <CalendarIcon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-amber-600'}`} />
+                  <CalendarIcon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                   <span>Calendar</span>
                 </div>
               )}
@@ -132,11 +132,11 @@ export default function Sidebar() {
               {({ isActive }) => (
                 <>
                   <div className="flex items-center gap-2.5">
-                    <Bell className={`w-4 h-4 ${isActive ? 'text-white' : 'text-rose-500'}`} />
+                    <Bell className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>Notifications</span>
                   </div>
                   {unreadNotifCount > 0 && (
-                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    <span className="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
                       {unreadNotifCount}
                     </span>
                   )}
@@ -156,7 +156,7 @@ export default function Sidebar() {
               <NavLink to="/teams" className={navLinkClass}>
                 {({ isActive }) => (
                   <div className="flex items-center gap-2.5">
-                    <FolderKanban className={`w-4 h-4 ${isActive ? 'text-white' : 'text-purple-600'}`} />
+                    <FolderKanban className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>Teams</span>
                   </div>
                 )}
@@ -165,7 +165,7 @@ export default function Sidebar() {
               <NavLink to="/users" className={navLinkClass}>
                 {({ isActive }) => (
                   <div className="flex items-center gap-2.5">
-                    <UserCheck className={`w-4 h-4 ${isActive ? 'text-white' : 'text-teal-600'}`} />
+                    <UserCheck className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>Users</span>
                   </div>
                 )}
@@ -174,7 +174,7 @@ export default function Sidebar() {
               <NavLink to="/reports" className={navLinkClass}>
                 {({ isActive }) => (
                   <div className="flex items-center gap-2.5">
-                    <BarChart3 className={`w-4 h-4 ${isActive ? 'text-white' : 'text-blue-600'}`} />
+                    <BarChart3 className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>Reports</span>
                   </div>
                 )}
@@ -183,7 +183,7 @@ export default function Sidebar() {
               <NavLink to="/deleted-tasks" className={navLinkClass}>
                 {({ isActive }) => (
                   <div className="flex items-center gap-2.5">
-                    <Trash2 className={`w-4 h-4 ${isActive ? 'text-white' : 'text-rose-600'}`} />
+                    <Trash2 className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
                     <span>Trash</span>
                   </div>
                 )}
@@ -195,9 +195,9 @@ export default function Sidebar() {
       </div>
 
       {/* Role Footer */}
-      <div className="pt-4 border-t border-slate-200/60 text-[11px] text-slate-500 font-medium px-2">
-        <p className="font-bold text-slate-700">{user?.name}</p>
-        <p className="text-slate-400">{user?.role} • {user?.team_name || 'Enterprise'}</p>
+      <div className="pt-4 border-t border-slate-200 text-[11px] font-medium px-2">
+        <p className="font-bold text-slate-900">{user?.name}</p>
+        <p className="text-slate-500">{user?.role} • {user?.team_name || 'Enterprise'}</p>
       </div>
     </aside>
   );

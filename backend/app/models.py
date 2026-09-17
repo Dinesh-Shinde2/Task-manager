@@ -65,6 +65,12 @@ class Task(Base):
     due_date = Column(String(20), nullable=True)   # YYYY-MM-DD or DD/MM/YYYY
     scheduled_at = Column(String(20), nullable=True) # HH:MM or ISO timestamp
 
+    # Time Tracking Fields
+    enable_time_tracking = Column(Boolean, default=True, nullable=False)
+    time_spent_seconds = Column(Integer, default=0, nullable=False)
+    is_timer_running = Column(Boolean, default=True, nullable=False)
+    timer_started_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=True)
+
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)

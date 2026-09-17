@@ -136,6 +136,7 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     assign_to_type: Optional[str] = "Self" # "Self" or "Other"
+    enable_time_tracking: bool = True
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
@@ -148,6 +149,7 @@ class TaskUpdate(BaseModel):
     start_date: Optional[str] = None
     due_date: Optional[str] = None
     scheduled_at: Optional[str] = None
+    enable_time_tracking: Optional[bool] = None
 
 class TaskResponse(TaskBase):
     id: int
@@ -156,6 +158,11 @@ class TaskResponse(TaskBase):
     creator_name: Optional[str] = "Unknown"
     assignee_name: Optional[str] = "Unassigned"
     team_name: Optional[str] = None
+    enable_time_tracking: bool = True
+    time_spent_seconds: int = 0
+    is_timer_running: bool = False
+    timer_started_at: Optional[datetime.datetime] = None
+    total_time_formatted: Optional[str] = "00:00:00"
     created_at: datetime.datetime
     updated_at: datetime.datetime
     deleted_at: Optional[datetime.datetime] = None

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { userAPI, teamAPI } from '../services/api';
 import { Filter, RotateCcw, Check, Calendar, User as UserIcon, FolderKanban, Shield } from 'lucide-react';
 
 export default function TaskFilterPanel({ filters, onApply, onReset }) {
+  const { user } = useAuth();
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [selectedPriorities, setSelectedPriorities] = useState([]);
 
@@ -14,6 +16,10 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
 
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
+
+  const displayTeams = user?.role === 'Admin' 
+    ? teams 
+    : teams.filter(t => t.id === user?.team_id || t.name === user?.team_name || (Array.isArray(t.members) && t.members.some(m => m.id === user?.id || m.user_id === user?.user_id)));
 
   const allStatuses = ['Triage', 'Pending', 'Scheduled', 'In Progress', 'Completed', 'Deleted'];
   const allPriorities = ['Low', 'Medium', 'High', 'Critical'];
@@ -76,29 +82,16 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
 
   const getStatusChipStyle = (st, isSelected) => {
     if (!isSelected) {
-      return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50';
+      return 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50';
     }
-    switch (st) {
-      case 'Completed': return 'bg-emerald-600 text-white border-emerald-600 shadow-sm';
-      case 'In Progress': return 'bg-blue-600 text-white border-blue-600 shadow-sm';
-      case 'Scheduled': return 'bg-purple-600 text-white border-purple-600 shadow-sm';
-      case 'Pending': return 'bg-amber-500 text-white border-amber-500 shadow-sm';
-      case 'Triage': return 'bg-indigo-600 text-white border-indigo-600 shadow-sm';
-      case 'Deleted': return 'bg-rose-600 text-white border-rose-600 shadow-sm';
-      default: return 'bg-slate-700 text-white border-slate-700 shadow-sm';
-    }
+    return 'bg-slate-900 text-white border-slate-900 shadow-sm';
   };
 
   const getPriorityChipStyle = (pr, isSelected) => {
     if (!isSelected) {
-      return 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50';
+      return 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50';
     }
-    switch (pr) {
-      case 'Critical': return 'bg-rose-600 text-white border-rose-600 shadow-sm';
-      case 'High': return 'bg-orange-500 text-white border-orange-500 shadow-sm';
-      case 'Medium': return 'bg-amber-500 text-white border-amber-500 shadow-sm';
-      default: return 'bg-slate-600 text-white border-slate-600 shadow-sm';
-    }
+    return 'bg-slate-900 text-white border-slate-900 shadow-sm';
   };
 
   const hasActiveFilters = selectedStatuses.length > 0 || selectedPriorities.length > 0 || assignedToId || teamId || createdById || fromDate || toDate;
@@ -109,7 +102,7 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-blue-100/80 text-blue-700 rounded-lg">
+          <div className="p-1.5 bg-slate-900 text-white rounded-lg">
             <Filter className="h-4 w-4" />
           </div>
           <div>
@@ -121,7 +114,7 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
         {hasActiveFilters && (
           <button
             onClick={handleReset}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+            className="text-xs font-semibold text-slate-700 hover:text-black bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
           >
             <RotateCcw className="h-3 w-3" /> Clear Filters
           </button>
@@ -189,7 +182,7 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
               <select
                 value={assignedToId}
                 onChange={(e) => setAssignedToId(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-medium text-slate-800 shadow-sm"
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-xs font-medium text-slate-800 shadow-sm"
               >
                 <option value="">All Assignees</option>
                 {users.map(u => (
@@ -207,10 +200,10 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
             <select
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-medium text-slate-800 shadow-sm"
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-xs font-medium text-slate-800 shadow-sm"
             >
-              <option value="">All Teams</option>
-              {teams.map(t => (
+              <option value="">{user?.role === 'Admin' ? 'All Teams' : 'My Team'}</option>
+              {displayTeams.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
@@ -224,7 +217,7 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
             <select
               value={createdById}
               onChange={(e) => setCreatedById(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-medium text-slate-800 shadow-sm"
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-xs font-medium text-slate-800 shadow-sm"
             >
               <option value="">All Creators</option>
               {users.map(u => (
@@ -243,14 +236,14 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-1/2 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                className="w-1/2 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm"
                 title="From Date"
               />
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-1/2 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                className="w-1/2 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm"
                 title="To Date"
               />
             </div>
@@ -264,7 +257,7 @@ export default function TaskFilterPanel({ filters, onApply, onReset }) {
       <div className="flex justify-end items-center gap-3 pt-3 border-t border-slate-200/60">
         <button
           onClick={handleApply}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5"
+          className="px-5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl font-semibold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5"
         >
           <Check className="h-4 w-4 stroke-[2.5]" /> Apply Filters
         </button>

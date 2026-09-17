@@ -53,10 +53,10 @@ export default function CalendarPage() {
 
   const getPriorityColor = (p) => {
     switch (p) {
-      case 'Critical': return 'bg-rose-100 text-rose-800 border-rose-300';
-      case 'High': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'Medium': return 'bg-amber-100 text-amber-800 border-amber-300';
-      default: return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'Critical': return 'bg-slate-900 text-white border-slate-900';
+      case 'High': return 'bg-slate-700 text-white border-slate-700';
+      case 'Medium': return 'bg-slate-200 text-slate-800 border-slate-300';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -78,10 +78,10 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <CalendarIcon className="h-6 w-6 text-amber-600" /> Calendar View
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <CalendarIcon className="h-6 w-6 text-slate-900" /> Calendar View
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <p className="text-slate-500 text-xs font-medium mt-0.5">
             Visual schedule of task due dates and scheduled activities
           </p>
         </div>

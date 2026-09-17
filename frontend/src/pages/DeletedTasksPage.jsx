@@ -44,10 +44,10 @@ export default function DeletedTasksPage() {
       
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <Trash2 className="h-6 w-6 text-rose-600" /> Deleted Tasks (Soft Delete Audit)
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <Trash2 className="h-6 w-6 text-slate-900" /> Deleted Tasks (Soft Delete Audit)
         </h1>
-        <p className="text-slate-500 text-sm mt-0.5">
+        <p className="text-slate-500 text-xs font-medium mt-0.5">
           Archived tasks preserved in database with deletion logs & restoration functionality
         </p>
       </div>
@@ -78,7 +78,7 @@ export default function DeletedTasksPage() {
                 ) : (
                   tasks.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-5 font-mono text-xs font-bold text-rose-600">
+                      <td className="py-3.5 px-5 font-mono text-xs font-bold text-slate-900">
                         #{t.task_id}
                       </td>
                       <td className="py-3.5 px-5 font-semibold text-slate-800 line-through">
@@ -99,7 +99,7 @@ export default function DeletedTasksPage() {
                         </button>
                         <button
                           onClick={() => handleRestore(t.id)}
-                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
+                          className="px-3 py-1 bg-slate-900 hover:bg-black text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1"
                         >
                           <RotateCcw className="h-3 w-3" /> Restore Task
                         </button>

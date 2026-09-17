@@ -35,19 +35,19 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         
         {/* Top Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-8 text-white text-center">
-          <div className="h-12 w-12 bg-white/20 backdrop-blur rounded-xl mx-auto flex items-center justify-center font-bold text-2xl mb-3 shadow-inner">
+        <div className="bg-slate-900 px-8 py-8 text-white text-center">
+          <div className="h-12 w-12 bg-white text-slate-900 rounded-xl mx-auto flex items-center justify-center font-black text-2xl mb-3 shadow-md">
             TM
           </div>
-          <h1 className="text-2xl font-bold">Task Manager</h1>
-          <p className="text-blue-100 text-sm mt-1 font-medium">Enterprise Portal</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Task Manager</h1>
+          <p className="text-slate-300 text-xs mt-1 font-medium tracking-wide uppercase">Enterprise Portal</p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
           
           {error && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs font-semibold text-center">
+            <div className="p-3.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-900 text-xs font-semibold text-center">
               {error}
             </div>
           )}
@@ -64,7 +64,7 @@ export default function LoginPage() {
                 placeholder="User ID"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-medium text-slate-800"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white font-medium text-slate-800"
               />
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-medium text-slate-800"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white font-medium text-slate-800"
               />
             </div>
           </div>
@@ -89,7 +89,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm hover:shadow transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 bg-slate-900 hover:bg-black text-white font-semibold rounded-lg shadow-sm hover:shadow transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? 'Authenticating...' : <><span>Sign In</span> <ArrowRight className="h-4 w-4" /></>}
           </button>

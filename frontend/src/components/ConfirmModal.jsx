@@ -16,42 +16,15 @@ export default function ConfirmModal({
   if (!isOpen) return null;
 
   const getIcon = () => {
-    switch (type) {
-      case 'danger':
-        return <AlertTriangle className="h-6 w-6 text-rose-600" />;
-      case 'warning':
-        return <AlertTriangle className="h-6 w-6 text-amber-600" />;
-      case 'success':
-        return <CheckCircle2 className="h-6 w-6 text-emerald-600" />;
-      default:
-        return <Info className="h-6 w-6 text-blue-600" />;
-    }
+    return <AlertTriangle className="h-6 w-6 text-slate-900" />;
   };
 
   const getIconBg = () => {
-    switch (type) {
-      case 'danger':
-        return 'bg-rose-50 border-rose-200';
-      case 'warning':
-        return 'bg-amber-50 border-amber-200';
-      case 'success':
-        return 'bg-emerald-50 border-emerald-200';
-      default:
-        return 'bg-blue-50 border-blue-200';
-    }
+    return 'bg-slate-100 border-slate-300';
   };
 
   const getConfirmBtnStyle = () => {
-    switch (type) {
-      case 'danger':
-        return 'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500';
-      case 'warning':
-        return 'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500';
-      case 'success':
-        return 'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500';
-      default:
-        return 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500';
-    }
+    return 'bg-slate-900 hover:bg-black text-white focus:ring-slate-900';
   };
 
   return ReactDOM.createPortal(

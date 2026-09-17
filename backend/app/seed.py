@@ -4,8 +4,28 @@ from .database import Base, engine, SessionLocal
 from .models import User, Team, TeamMember, Task
 from .auth import get_password_hash
 
+def ensure_columns_exist(engine):
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        if 'tasks' in inspector.get_table_names():
+            columns = [c['name'] for c in inspector.get_columns('tasks')]
+            with engine.connect() as conn:
+                if 'enable_time_tracking' not in columns:
+                    conn.execute(text("ALTER TABLE tasks ADD COLUMN enable_time_tracking BOOLEAN DEFAULT 1"))
+                if 'time_spent_seconds' not in columns:
+                    conn.execute(text("ALTER TABLE tasks ADD COLUMN time_spent_seconds INTEGER DEFAULT 0"))
+                if 'is_timer_running' not in columns:
+                    conn.execute(text("ALTER TABLE tasks ADD COLUMN is_timer_running BOOLEAN DEFAULT 0"))
+                if 'timer_started_at' not in columns:
+                    conn.execute(text("ALTER TABLE tasks ADD COLUMN timer_started_at DATETIME"))
+                conn.commit()
+    except Exception as e:
+        print(f"Column migration notice: {e}")
+
 def seed_db():
     Base.metadata.create_all(bind=engine)
+    ensure_columns_exist(engine)
     db: Session = SessionLocal()
 
     try:

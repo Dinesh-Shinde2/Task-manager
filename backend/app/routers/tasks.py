@@ -11,6 +11,35 @@ from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
+def format_seconds(total_seconds: int) -> str:
+    total_seconds = max(0, int(total_seconds))
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return f"{hours:02d}h {minutes:02d}m {seconds:02d}s"
+
+def update_timer_on_status_change(task: Task, old_status: str, new_status: str):
+    if task.enable_time_tracking is False:
+        task.is_timer_running = False
+        task.timer_started_at = None
+        return
+
+    now = datetime.datetime.utcnow()
+
+    # Time calculation starts ONLY when task status transitions to "In Progress"
+    if new_status == "In Progress":
+        if not task.is_timer_running:
+            task.is_timer_running = True
+            task.timer_started_at = now
+    # When leaving "In Progress" (or if timer was running), calculate elapsed seconds and pause timer
+    elif old_status == "In Progress" or task.is_timer_running:
+        if task.is_timer_running and task.timer_started_at:
+            elapsed = int((now - task.timer_started_at).total_seconds())
+            if elapsed > 0:
+                task.time_spent_seconds = (task.time_spent_seconds or 0) + elapsed
+        task.is_timer_running = False
+        task.timer_started_at = None
+
 def format_task_response(task: Task) -> TaskResponse:
     tr = TaskResponse.from_orm(task)
     tr.creator_name = task.creator.name if task.creator else "Unknown"
@@ -18,6 +47,21 @@ def format_task_response(task: Task) -> TaskResponse:
     tr.team_name = task.team.name if task.team else None
     if task.deleted_by:
         tr.deleted_by_name = task.deleted_by.name
+
+    tr.enable_time_tracking = True if task.enable_time_tracking is None else bool(task.enable_time_tracking)
+
+    # Calculate live active time
+    now = datetime.datetime.utcnow()
+    accumulated = task.time_spent_seconds or 0
+    if tr.enable_time_tracking and task.is_timer_running and task.timer_started_at:
+        session_elapsed = int((now - task.timer_started_at).total_seconds())
+        if session_elapsed > 0:
+            accumulated += session_elapsed
+
+    tr.time_spent_seconds = accumulated
+    tr.is_timer_running = bool(task.is_timer_running) if tr.enable_time_tracking else False
+    tr.timer_started_at = task.timer_started_at
+    tr.total_time_formatted = format_seconds(accumulated)
 
     # Format comments
     tr.comments = [
@@ -203,6 +247,9 @@ def create_task(
         if not team_id:
             team_id = current_user.team_id
 
+    now = datetime.datetime.utcnow()
+    enable_tracking = payload.enable_time_tracking if payload.enable_time_tracking is not None else True
+    is_running = enable_tracking and (payload.status == "In Progress")
     new_task = Task(
         task_id=generate_task_id(db),
         title=payload.title,
@@ -216,7 +263,11 @@ def create_task(
         start_date=payload.start_date,
         due_date=payload.due_date,
         scheduled_at=payload.scheduled_at,
-        created_at=datetime.datetime.utcnow()
+        enable_time_tracking=enable_tracking,
+        time_spent_seconds=0,
+        is_timer_running=is_running,
+        timer_started_at=now if is_running else None,
+        created_at=now
     )
     db.add(new_task)
     db.commit()
@@ -226,7 +277,7 @@ def create_task(
     act = TaskActivity(
         task_id=new_task.id,
         user_id=current_user.id,
-        action="Task Created",
+        action="Task Created (Timer Started)",
         new_value=new_task.title
     )
     db.add(act)
@@ -282,8 +333,9 @@ def update_task(
     if payload.team_id is not None:
         task.team_id = payload.team_id
 
-    # Handle status change
+    # Handle status change and update timer state
     if payload.status is not None and payload.status != old_status:
+        update_timer_on_status_change(task, old_status, payload.status)
         task.status = payload.status
         act = TaskActivity(
             task_id=task.id,
@@ -360,6 +412,7 @@ def delete_task(
             raise HTTPException(status_code=403, detail="Only creator, assignee, or Admin can delete a task")
 
     old_status = task.status
+    update_timer_on_status_change(task, old_status, "Deleted")
     task.status = "Deleted"
     task.deleted_at = datetime.datetime.utcnow()
     task.deleted_by_id = current_user.id
@@ -367,7 +420,7 @@ def delete_task(
     act = TaskActivity(
         task_id=task.id,
         user_id=current_user.id,
-        action="Task Deleted",
+        action="Task Deleted (Timer Stopped)",
         old_value=old_status,
         new_value="Deleted"
     )
@@ -386,6 +439,7 @@ def restore_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    update_timer_on_status_change(task, "Deleted", "Pending")
     task.status = "Pending"
     task.deleted_at = None
     task.deleted_by_id = None
@@ -393,11 +447,113 @@ def restore_task(
     act = TaskActivity(
         task_id=task.id,
         user_id=current_user.id,
-        action="Task Restored",
+        action="Task Restored (Timer Resumed)",
         old_value="Deleted",
         new_value="Pending"
     )
     db.add(act)
     db.commit()
     db.refresh(task)
+    return format_task_response(task)
+
+# Manual Timer Control Endpoints
+@router.post("/{task_id_str_or_int}/timer/start", response_model=TaskResponse)
+def start_task_timer(
+    task_id_str_or_int: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if task_id_str_or_int.isdigit():
+        task = db.query(Task).filter(Task.id == int(task_id_str_or_int)).first()
+    else:
+        task = db.query(Task).filter(Task.task_id == task_id_str_or_int).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if not task.is_timer_running:
+        now = datetime.datetime.utcnow()
+        task.is_timer_running = True
+        task.timer_started_at = now
+        if task.status in ["Completed", "Closed", "Deleted"]:
+            task.status = "In Progress"
+
+        act = TaskActivity(
+            task_id=task.id,
+            user_id=current_user.id,
+            action="Timer Started",
+            old_value=now.strftime("%Y-%m-%d %H:%M:%S"),
+            new_value="Running"
+        )
+        db.add(act)
+        db.commit()
+        db.refresh(task)
+
+    return format_task_response(task)
+
+@router.post("/{task_id_str_or_int}/timer/pause", response_model=TaskResponse)
+def pause_task_timer(
+    task_id_str_or_int: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if task_id_str_or_int.isdigit():
+        task = db.query(Task).filter(Task.id == int(task_id_str_or_int)).first()
+    else:
+        task = db.query(Task).filter(Task.task_id == task_id_str_or_int).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.is_timer_running:
+        now = datetime.datetime.utcnow()
+        start_str = task.timer_started_at.strftime("%Y-%m-%d %H:%M:%S") if task.timer_started_at else "N/A"
+        elapsed = 0
+        if task.timer_started_at:
+            elapsed = int((now - task.timer_started_at).total_seconds())
+            if elapsed > 0:
+                task.time_spent_seconds = (task.time_spent_seconds or 0) + elapsed
+        task.is_timer_running = False
+        task.timer_started_at = None
+
+        act = TaskActivity(
+            task_id=task.id,
+            user_id=current_user.id,
+            action="Timer Paused",
+            old_value=f"Start: {start_str}",
+            new_value=f"End: {now.strftime('%Y-%m-%d %H:%M:%S')} (Session: {format_seconds(elapsed)})"
+        )
+        db.add(act)
+        db.commit()
+        db.refresh(task)
+
+    return format_task_response(task)
+
+@router.post("/{task_id_str_or_int}/timer/reset", response_model=TaskResponse)
+def reset_task_timer(
+    task_id_str_or_int: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if task_id_str_or_int.isdigit():
+        task = db.query(Task).filter(Task.id == int(task_id_str_or_int)).first()
+    else:
+        task = db.query(Task).filter(Task.task_id == task_id_str_or_int).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task.time_spent_seconds = 0
+    task.timer_started_at = datetime.datetime.utcnow() if task.is_timer_running else None
+
+    act = TaskActivity(
+        task_id=task.id,
+        user_id=current_user.id,
+        action="Timer Reset",
+        new_value="00:00:00"
+    )
+    db.add(act)
+    db.commit()
+    db.refresh(task)
+
     return format_task_response(task)

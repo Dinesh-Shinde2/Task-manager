@@ -63,6 +63,9 @@ export const taskAPI = {
   updateTask: (id, taskData) => api.put(`/tasks/${id}`, taskData),
   deleteTask: (id) => api.delete(`/tasks/${id}`),
   restoreTask: (id) => api.post(`/tasks/${id}/restore`),
+  startTimer: (id) => api.post(`/tasks/${id}/timer/start`),
+  pauseTimer: (id) => api.post(`/tasks/${id}/timer/pause`),
+  resetTimer: (id) => api.post(`/tasks/${id}/timer/reset`),
 };
 
 export const commentAPI = {
