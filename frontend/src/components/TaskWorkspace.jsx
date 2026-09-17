@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { 
   LayoutGrid, 
   List, 
@@ -13,12 +14,16 @@ import {
   Flame, 
   Layers,
   ChevronDown,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import TaskTimerBadge from './TaskTimerBadge';
 import { taskAPI } from '../services/api';
 
 export default function TaskWorkspace({ tasks, loading, onTaskUpdated, onSelectTask, usersList = [] }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
+
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'list'
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dropTargetStatus, setDropTargetStatus] = useState(null);
@@ -26,10 +31,24 @@ export default function TaskWorkspace({ tasks, loading, onTaskUpdated, onSelectT
 
   const statuses = ['Triage', 'Pending', 'Scheduled', 'In Progress', 'Completed'];
 
+  // Permission check: Admin can drag any task. Members can ONLY drag tasks assigned to them or created by them.
+  const canUserDragTask = (t) => {
+    if (!user) return false;
+    if (isAdmin) return true;
+    if (t.assigned_to_id && t.assigned_to_id === user.id) return true;
+    if (t.assigned_to_name && user.name && t.assigned_to_name.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+    if (t.created_by_id && t.created_by_id === user.id) return true;
+    return false;
+  };
+
   // Drag and drop handlers
-  const handleDragStart = (e, taskId) => {
-    setDraggedTaskId(taskId);
-    e.dataTransfer.setData('text/plain', taskId.toString());
+  const handleDragStart = (e, task) => {
+    if (!canUserDragTask(task)) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedTaskId(task.id);
+    e.dataTransfer.setData('text/plain', task.id.toString());
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -54,6 +73,11 @@ export default function TaskWorkspace({ tasks, loading, onTaskUpdated, onSelectT
     const taskId = parseInt(taskIdStr);
     const targetTask = tasks.find(t => t.id === taskId);
     if (!targetTask || targetTask.status === newStatus) return;
+
+    if (!canUserDragTask(targetTask)) {
+      console.warn('Drag and drop status change restricted for task assigned to another user');
+      return;
+    }
 
     try {
       setUpdatingTaskId(taskId);
@@ -200,33 +224,41 @@ export default function TaskWorkspace({ tasks, loading, onTaskUpdated, onSelectT
                       Drag tasks here
                     </div>
                   ) : (
-                    columnTasks.map((t) => (
-                      <div
-                        key={t.id}
-                        draggable={true}
-                        onDragStart={(e) => handleDragStart(e, t.id)}
-                        onClick={() => onSelectTask(t.id)}
-                        className={`bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all cursor-grab active:cursor-grabbing hover:border-blue-300 space-y-3 group ${
-                          draggedTaskId === t.id ? 'opacity-40 border-dashed border-blue-400' : ''
-                        }`}
-                      >
-                        {/* Card Top Row: Task Key, Team & Priority */}
-                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono text-[11px] font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                              #{t.task_id}
-                            </span>
-                            {t.team_name && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1">
-                                <Users className="w-2.5 h-2.5 text-slate-500" />
-                                {t.team_name}
+                    columnTasks.map((t) => {
+                      const isDraggable = canUserDragTask(t);
+                      return (
+                        <div
+                          key={t.id}
+                          draggable={isDraggable}
+                          onDragStart={(e) => handleDragStart(e, t)}
+                          onClick={() => onSelectTask(t.id)}
+                          className={`bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all space-y-3 group ${
+                            isDraggable
+                              ? 'cursor-grab active:cursor-grabbing hover:border-slate-400'
+                              : 'cursor-pointer hover:border-slate-300'
+                          } ${
+                            draggedTaskId === t.id ? 'opacity-40 border-dashed border-slate-400' : ''
+                          }`}
+                          title={isDraggable ? 'Drag card to update status' : 'Only assigned user or Admin can drag status. Click to view & reassign task.'}
+                        >
+                          {/* Card Top Row: Task Key, Team & Priority */}
+                          <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono text-[11px] font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                                {!isDraggable && <Lock className="w-2.5 h-2.5 text-slate-400" />}
+                                #{t.task_id}
                               </span>
-                            )}
+                              {t.team_name && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1">
+                                  <Users className="w-2.5 h-2.5 text-slate-500" />
+                                  {t.team_name}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getPriorityBadgeStyle(t.priority)}`}>
+                              {t.priority}
+                            </span>
                           </div>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getPriorityBadgeStyle(t.priority)}`}>
-                            {t.priority}
-                          </span>
-                        </div>
 
                         {/* Task Title */}
                         <h4 className="font-bold text-xs text-slate-900 group-hover:underline transition-colors line-clamp-2 leading-snug">
@@ -248,7 +280,8 @@ export default function TaskWorkspace({ tasks, loading, onTaskUpdated, onSelectT
                           </span>
                         </div>
                       </div>
-                    ))
+                    );
+                  })
                   )}
                 </div>
               </div>
@@ -347,9 +380,12 @@ export default function TaskWorkspace({ tasks, loading, onTaskUpdated, onSelectT
                         <div className="relative">
                           <select
                             value={t.status}
-                            disabled={isUpdating}
+                            disabled={isUpdating || !canUserDragTask(t)}
                             onChange={(e) => handleStatusSelectChange(t.id, e.target.value)}
-                            className={`appearance-none px-2.5 py-1 text-xs font-bold rounded-lg border focus:outline-none cursor-pointer pr-7 transition-all ${getStatusBadgeStyle(t.status)}`}
+                            className={`appearance-none px-2.5 py-1 text-xs font-bold rounded-lg border focus:outline-none pr-7 transition-all ${
+                              !canUserDragTask(t) ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                            } ${getStatusBadgeStyle(t.status)}`}
+                            title={!canUserDragTask(t) ? "Status change restricted to assignee or Admin" : "Change status"}
                           >
                             <option value="Triage">Triage</option>
                             <option value="Pending">Pending</option>
