@@ -26,14 +26,18 @@ export default function Sidebar() {
     if (user) {
       taskAPI.getTasks({ view_type: 'my_tasks' })
         .then(res => {
-          const pending = res.data.filter(t => t.status !== 'Completed');
-          setMyTasksCount(pending.length);
+          if (Array.isArray(res?.data)) {
+            const pending = res.data.filter(t => t.status !== 'Completed');
+            setMyTasksCount(pending.length);
+          }
         })
         .catch(() => {});
 
       notificationAPI.getNotifications()
         .then(res => {
-          setUnreadNotifCount(res.data.filter(n => !n.is_read).length);
+          if (Array.isArray(res?.data)) {
+            setUnreadNotifCount(res.data.filter(n => !n.is_read).length);
+          }
         })
         .catch(() => {});
     }

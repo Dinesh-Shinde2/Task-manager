@@ -79,10 +79,17 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
   const fetchNotifications = async () => {
     try {
       const res = await notificationAPI.getNotifications();
-      setNotifications(res.data);
-      setUnreadCount(res.data.filter(n => !n.is_read).length);
+      if (Array.isArray(res?.data)) {
+        setNotifications(res.data);
+        setUnreadCount(res.data.filter(n => !n.is_read).length);
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
     } catch (err) {
       console.error(err);
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 
