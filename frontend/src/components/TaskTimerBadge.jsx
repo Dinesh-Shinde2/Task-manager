@@ -62,15 +62,45 @@ export default function TaskTimerBadge({ task, onTimerUpdated, size = 'sm' }) {
   const formatTimestamp = (dateString) => {
     if (!dateString) return 'N/A';
     try {
-      const d = new Date(dateString);
+      let str = String(dateString).trim();
+
+      if (str.includes('IST')) return str;
+
+      if (str.includes('Start: ') || str.includes('End: ')) {
+        return str.replace(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/g, (match) => {
+          const isoStr = match.replace(' ', 'T') + 'Z';
+          const d = new Date(isoStr);
+          return isNaN(d.getTime()) ? match : d.toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+        });
+      }
+
+      if (str.includes('T') && !str.endsWith('Z') && !str.includes('+') && !str.includes('-')) {
+        str += 'Z';
+      } else if (!str.includes('T') && !str.includes('Z') && !str.includes('+')) {
+        str = str.replace(' ', 'T') + 'Z';
+      }
+
+      const d = new Date(str);
       if (isNaN(d.getTime())) return dateString;
-      return d.toLocaleString([], {
+
+      return d.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
         month: 'short',
         day: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
+        hour12: true
       });
     } catch {
       return dateString;

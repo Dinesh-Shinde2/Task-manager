@@ -11,6 +11,28 @@ from ..auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 
+IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+def to_ist(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt.astimezone(IST)
+
+def format_ist_str(dt: Optional[datetime.datetime]) -> str:
+    if not dt:
+        return "N/A"
+    ist_dt = to_ist(dt)
+    return ist_dt.strftime("%b %d, %Y %I:%M:%S %p IST")
+
+def ensure_utc(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
+
 def format_seconds(total_seconds: int) -> str:
     total_seconds = max(0, int(total_seconds))
     hours = total_seconds // 3600
@@ -60,7 +82,10 @@ def format_task_response(task: Task) -> TaskResponse:
 
     tr.time_spent_seconds = accumulated
     tr.is_timer_running = bool(task.is_timer_running) if tr.enable_time_tracking else False
-    tr.timer_started_at = task.timer_started_at
+    tr.timer_started_at = ensure_utc(task.timer_started_at)
+    tr.created_at = ensure_utc(task.created_at)
+    tr.updated_at = ensure_utc(task.updated_at)
+    tr.deleted_at = ensure_utc(task.deleted_at)
     tr.total_time_formatted = format_seconds(accumulated)
 
     # Format comments
@@ -71,7 +96,7 @@ def format_task_response(task: Task) -> TaskResponse:
             user_id=c.user_id,
             author_name=c.author.name if c.author else "Unknown",
             comment=c.comment,
-            created_at=c.created_at
+            created_at=ensure_utc(c.created_at)
         ) for c in task.comments
     ]
 
@@ -84,7 +109,7 @@ def format_task_response(task: Task) -> TaskResponse:
             file_path=a.file_path,
             uploaded_by_id=a.uploaded_by_id,
             uploader_name=a.uploader.name if a.uploader else "Unknown",
-            created_at=a.created_at
+            created_at=ensure_utc(a.created_at)
         ) for a in task.attachments
     ]
 
@@ -98,7 +123,7 @@ def format_task_response(task: Task) -> TaskResponse:
             action=act.action,
             old_value=act.old_value,
             new_value=act.new_value,
-            created_at=act.created_at
+            created_at=ensure_utc(act.created_at)
         ) for act in task.activity_logs
     ]
     return tr
@@ -497,7 +522,7 @@ def start_task_timer(
             task_id=task.id,
             user_id=current_user.id,
             action="Timer Started",
-            old_value=now.strftime("%Y-%m-%d %H:%M:%S"),
+            old_value=format_ist_str(now),
             new_value="Running"
         )
         db.add(act)
@@ -522,7 +547,8 @@ def pause_task_timer(
 
     if task.is_timer_running:
         now = datetime.datetime.utcnow()
-        start_str = task.timer_started_at.strftime("%Y-%m-%d %H:%M:%S") if task.timer_started_at else "N/A"
+        start_str = format_ist_str(task.timer_started_at) if task.timer_started_at else "N/A"
+        end_str = format_ist_str(now)
         elapsed = 0
         if task.timer_started_at:
             elapsed = int((now - task.timer_started_at).total_seconds())
@@ -536,7 +562,7 @@ def pause_task_timer(
             user_id=current_user.id,
             action="Timer Paused",
             old_value=f"Start: {start_str}",
-            new_value=f"End: {now.strftime('%Y-%m-%d %H:%M:%S')} (Session: {format_seconds(elapsed)})"
+            new_value=f"End: {end_str} (Session: {format_seconds(elapsed)})"
         )
         db.add(act)
         db.commit()
