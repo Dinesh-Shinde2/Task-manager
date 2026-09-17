@@ -59,9 +59,9 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   
   // Applied Date Range (used for filtering)
   const [appliedDateRange, setAppliedDateRange] = useState({
-    label: 'Last 7 Days',
-    startDate: formatDateForInput(sevenDaysAgo),
-    endDate: formatDateForInput(today)
+    label: 'All Time',
+    startDate: '',
+    endDate: ''
   });
 
   // State for KPI drill-down modal
@@ -104,13 +104,11 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
         console.error(e);
       }
 
-      if (user?.team_id) {
-        try {
-          const membersRes = await userAPI.getUsers(user.team_id);
-          setTeamMembers(Array.isArray(membersRes?.data) ? membersRes.data : []);
-        } catch (e) {
-          console.error(e);
-        }
+      try {
+        const membersRes = await userAPI.getUsers();
+        setTeamMembers(Array.isArray(membersRes?.data) ? membersRes.data : []);
+      } catch (e) {
+        console.error(e);
       }
     } catch (err) {
       console.error(err);
@@ -131,7 +129,10 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
     const now = new Date();
     let start = new Date();
 
-    if (presetName === 'Last 7 Days') {
+    if (presetName === 'All Time') {
+      setStartDateInput('');
+      setEndDateInput('');
+    } else if (presetName === 'Last 7 Days') {
       start.setDate(now.getDate() - 7);
     } else if (presetName === 'Last 14 Days') {
       start.setDate(now.getDate() - 14);
@@ -141,7 +142,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
       start = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    if (presetName !== 'Custom Range') {
+    if (presetName !== 'Custom Range' && presetName !== 'All Time') {
       setStartDateInput(formatDateForInput(start));
       setEndDateInput(formatDateForInput(now));
     }
@@ -150,7 +151,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   // Handle Apply Date Range
   const handleApplyDateRange = () => {
     let label = activePreset;
-    if (activePreset === 'Custom Range' || !['Last 7 Days', 'Last 14 Days', 'Last 30 Days', 'This Month'].includes(activePreset)) {
+    if (activePreset === 'Custom Range' || !['All Time', 'Last 7 Days', 'Last 14 Days', 'Last 30 Days', 'This Month'].includes(activePreset)) {
       label = `${startDateInput} to ${endDateInput}`;
     }
     
@@ -259,26 +260,96 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   const baseTasks = allTasksList.length > 0 ? allTasksList : recentTasks;
 
   const dateFilteredTasks = baseTasks.filter(t => {
-    if (!t.created_at && !t.due_date) return true;
-    const taskDateStr = t.due_date || (t.created_at ? t.created_at.split('T')[0] : null);
-    if (!taskDateStr) return true;
-
-    return taskDateStr >= appliedDateRange.startDate && taskDateStr <= appliedDateRange.endDate;
+    if (!appliedDateRange.startDate || !appliedDateRange.endDate || appliedDateRange.label === 'All Time') return true;
+    const createdStr = t.created_at ? t.created_at.split('T')[0] : null;
+    const dueStr = t.due_date || null;
+    const createdInRange = createdStr && createdStr >= appliedDateRange.startDate && createdStr <= appliedDateRange.endDate;
+    const dueInRange = dueStr && dueStr >= appliedDateRange.startDate && dueStr <= appliedDateRange.endDate;
+    return createdInRange || dueInRange;
   });
 
-  const tasksToDisplay = dateFilteredTasks.length > 0 ? dateFilteredTasks : baseTasks;
+  const tasksToDisplay = dateFilteredTasks;
 
-  const teamTotal = team.total || 0;
-  const teamCompleted = team.completed || 0;
-  const teamInProg = team.in_progress || 0;
-  const teamTriage = team.triage || 0;
-  const teamPending = team.pending || 0;
+  // Dynamic Team-Scoped Tasks based on selected teamFilter
+  const teamScopedTasks = (tasksToDisplay || []).filter(t => {
+    if (!t) return false;
+    if (teamFilter === 'All') return true;
+    return t.team_name === teamFilter;
+  });
+
+  const teamTotal = teamScopedTasks.length;
+  const teamCompleted = teamScopedTasks.filter(t => t.status === 'Completed' || t.status === 'Finished').length;
+  const teamInProg = teamScopedTasks.filter(t => t.status === 'In Progress').length;
+  const teamTriage = teamScopedTasks.filter(t => t.status === 'Triage' || t.status === 'Scheduled' || t.status === 'In Review').length;
+  const teamPending = teamScopedTasks.filter(t => t.status === 'Pending').length;
 
   const teamDonePct = teamTotal > 0 ? ((teamCompleted / teamTotal) * 100).toFixed(1) : 0;
   const teamInProgPct = teamTotal > 0 ? ((teamInProg / teamTotal) * 100).toFixed(1) : 0;
   const teamTriagePct = teamTotal > 0 ? ((teamTriage / teamTotal) * 100).toFixed(1) : 0;
   const teamPendingPct = teamTotal > 0 ? ((teamPending / teamTotal) * 100).toFixed(1) : 0;
   const teamCompletionRate = teamTotal > 0 ? Math.round((teamCompleted / teamTotal) * 100) : 0;
+
+  // Dynamic user workload calculated strictly for selected teamFilter
+  const displayUserWorkload = (() => {
+    // 1. Determine relevant team members for current teamFilter
+    let targetMembers = [];
+
+    if (teamFilter !== 'All') {
+      const selectedTeam = (teamsList || []).find(tm => tm.name === teamFilter);
+      if (selectedTeam && Array.isArray(selectedTeam.members) && selectedTeam.members.length > 0) {
+        targetMembers = selectedTeam.members;
+      } else {
+        targetMembers = (teamMembers || []).filter(m => m.team_name === teamFilter || (selectedTeam && m.team_id === selectedTeam.id));
+      }
+    } else {
+      if (Array.isArray(teamMembers) && teamMembers.length > 0) {
+        targetMembers = teamMembers;
+      } else {
+        const allM = [];
+        (teamsList || []).forEach(tm => {
+          if (Array.isArray(tm.members)) {
+            allM.push(...tm.members);
+          }
+        });
+        targetMembers = allM;
+      }
+    }
+
+    // 2. Build unique user map from targetMembers (deduplicated by user ID)
+    const userMap = {};
+    targetMembers.forEach(m => {
+      const uniqueKey = m.id || m.user_id || m.name;
+      if (uniqueKey && !userMap[uniqueKey]) {
+        userMap[uniqueKey] = {
+          id: m.id,
+          user_id: m.user_id,
+          user_name: m.name,
+          team_name: m.team_name || teamFilter,
+          team_id: m.team_id,
+          assigned: 0
+        };
+      }
+    });
+
+    // 3. Count assigned tasks from teamScopedTasks
+    (teamScopedTasks || []).forEach(t => {
+      if (!t || t.status === 'Deleted') return;
+      const assignedToId = t.assigned_to_id;
+      const assigneeName = t.assignee_name;
+
+      const userObj = Object.values(userMap).find(u =>
+        (assignedToId && (u.id === assignedToId || u.user_id === assignedToId)) ||
+        (assigneeName && assigneeName !== 'Unassigned' && u.user_name === assigneeName)
+      );
+
+      if (userObj) {
+        userObj.assigned += 1;
+      }
+    });
+
+    // 4. Return sorted user workload list
+    return Object.values(userMap).sort((a, b) => b.assigned - a.assigned);
+  })();
 
   const filteredDirectoryTasks = (tasksToDisplay || []).filter(t => {
     if (!t) return false;
@@ -409,8 +480,8 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                   </div>
 
                   {/* Quick Preset Buttons */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-4">
-                    {['Last 7 Days', 'Last 14 Days', 'Last 30 Days', 'This Month'].map((preset) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mb-4">
+                    {['All Time', 'Last 7 Days', 'Last 14 Days', 'Last 30 Days', 'This Month'].map((preset) => (
                       <button
                         key={preset}
                         type="button"
@@ -520,7 +591,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          All Teams ({tasksToDisplay.length})
+          All Teams ({tasksToDisplay.length} tasks)
         </button>
         {teamsList.map((tm) => {
           const teamTaskCount = tasksToDisplay.filter(t => t.team_name === tm.name).length;
@@ -539,7 +610,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                 teamFilter === tm.name ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
               }`}>
-                {teamTaskCount}
+                {teamTaskCount} tasks
               </span>
             </button>
           );
@@ -805,8 +876,8 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
 
             {/* Member Rows (Dynamic capacity bar based on task count) */}
             <div className="flex flex-col space-y-3.5 my-auto">
-              {adminMetrics?.user_workload && adminMetrics.user_workload.length > 0 ? (
-                adminMetrics.user_workload.slice(0, 4).map((uw) => {
+              {displayUserWorkload.length > 0 ? (
+                displayUserWorkload.slice(0, 5).map((uw) => {
                   const assignedCount = uw.assigned || 0;
                   const pct = teamTotal > 0 ? Math.round((assignedCount / teamTotal) * 100) : 0;
                   const statusTag = pct > 85 ? 'Near Cap' : pct > 65 ? 'Optimal' : pct > 0 ? 'Balanced' : 'Available';
@@ -820,8 +891,8 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                         <div className="flex items-center justify-between text-xs mb-1">
                           <div className="flex items-center gap-1.5 truncate">
                             <span className="font-bold text-slate-900 truncate">{uw.user_name}</span>
-                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-slate-200">
-                              Member
+                            <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-slate-200">
+                              {uw.team_name || 'Member'}
                             </span>
                           </div>
                           <span className="text-[11px] font-bold text-slate-800">
@@ -842,55 +913,9 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
                   );
                 })
               ) : (
-                <>
-                  {/* Dynamic calculation for current logged in user and team members */}
-                  <div className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : 'D'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <div className="flex items-center gap-1.5 truncate">
-                          <span className="font-bold text-slate-900 truncate">{user?.name || 'Dinesh'}</span>
-                          <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-slate-200">Lead</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-slate-800">
-                          {myTotal} tasks ({teamTotal > 0 ? Math.round((myTotal / teamTotal) * 100) : 0}%)
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                        <div 
-                          className="h-full bg-slate-900 rounded-full transition-all duration-500" 
-                          style={{ width: `${teamTotal > 0 ? Math.round((myTotal / teamTotal) * 100) : 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 text-[11px] font-bold shrink-0">
-                      {teamTotal > 0 && myTotal > 0 ? 'Balanced' : 'Available'}
-                    </span>
-                  </div>
-
-                  {teamMembers.filter(m => m.name !== user?.name).slice(0, 3).map(m => (
-                    <div key={m.id} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                        {m.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <div className="flex items-center gap-1.5 truncate">
-                            <span className="font-bold text-slate-900 truncate">{m.name}</span>
-                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-slate-200">{m.role}</span>
-                          </div>
-                          <span className="text-[11px] font-bold text-slate-800">0 tasks (0%)</span>
-                        </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                          <div className="h-full bg-slate-900 rounded-full transition-all duration-500" style={{ width: '0%' }}></div>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 text-[11px] font-bold shrink-0">Available</span>
-                    </div>
-                  ))}
-                </>
+                <div className="p-6 text-center text-slate-400 text-xs font-medium">
+                  No active team members for selected filter.
+                </div>
               )}
             </div>
           </div>
