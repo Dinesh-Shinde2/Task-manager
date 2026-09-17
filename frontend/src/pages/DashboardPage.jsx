@@ -40,6 +40,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'personal', 'team'
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
+  const [tableFilterSearch, setTableFilterSearch] = useState('');
 
   // Date Range Filter States
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -262,7 +263,7 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
   const teamCompletionRate = teamTotal > 0 ? Math.round((teamCompleted / teamTotal) * 100) : 0;
 
   const filteredDirectoryTasks = tasksToDisplay.filter(t => {
-    const query = (searchTerm || '').toLowerCase();
+    const query = (tableFilterSearch || searchTerm || '').toLowerCase().trim();
     const matchesSearch = !query || 
       t.title.toLowerCase().includes(query) ||
       t.task_id.toLowerCase().includes(query) ||
@@ -844,8 +845,8 @@ export default function DashboardPage({ searchTerm, setSearchTerm }) {
               <input
                 type="text"
                 placeholder="Filter tasks by key, name, or assignee..."
-                value={searchTerm || ''}
-                onChange={(e) => setSearchTerm && setSearchTerm(e.target.value)}
+                value={tableFilterSearch}
+                onChange={(e) => setTableFilterSearch(e.target.value)}
                 className="w-full h-8 pl-9 pr-3 bg-white rounded-lg text-xs text-slate-800 placeholder:text-slate-400 border border-slate-200 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

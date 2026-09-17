@@ -107,7 +107,9 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
           : [];
 
         setSearchResults({ tasks: matchedTasks, users: matchedUsers });
-        setShowSearchDropdown(true);
+        if (document.activeElement === inputRef.current) {
+          setShowSearchDropdown(true);
+        }
       } catch (err) {
         console.error(err);
       } finally {
