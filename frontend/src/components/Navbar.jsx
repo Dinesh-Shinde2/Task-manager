@@ -26,6 +26,9 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
   // Search Live Overlay & Keyboard Shortcut state
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const notifContainerRef = useRef(null);
+  const userContainerRef = useRef(null);
+
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState({ tasks: [], users: [] });
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -40,13 +43,15 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
         setShowSearchDropdown(true);
       } else if (e.key === 'Escape') {
         setShowSearchDropdown(false);
+        setShowNotifPopover(false);
+        setShowUserDropdown(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Close search dropdown on click outside
+  // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -54,6 +59,16 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
         inputRef.current && !inputRef.current.contains(e.target)
       ) {
         setShowSearchDropdown(false);
+      }
+      if (
+        notifContainerRef.current && !notifContainerRef.current.contains(e.target)
+      ) {
+        setShowNotifPopover(false);
+      }
+      if (
+        userContainerRef.current && !userContainerRef.current.contains(e.target)
+      ) {
+        setShowUserDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -126,6 +141,22 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
       fetchNotifications();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleNotifClick = async (notif) => {
+    if (!notif.is_read) {
+      try {
+        await notificationAPI.markRead(notif.id);
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    if (notif.task_id) {
+      setSelectedTaskId(notif.task_id);
+      setShowNotifPopover(false);
     }
   };
 
@@ -279,38 +310,44 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
         <div className="h-4 w-[1px] bg-slate-200 mx-0.5"></div>
 
         {/* Notifications Bell */}
-        <div className="relative">
+        <div ref={notifContainerRef} className="relative">
           <button
             onClick={() => {
               setShowNotifPopover(!showNotifPopover);
               setShowUserDropdown(false);
             }}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors relative cursor-pointer border border-slate-200/80 bg-white"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors relative cursor-pointer border border-slate-200 bg-white shadow-2xs"
             title="Notifications"
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-4 h-4 text-slate-700" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-slate-900 animate-pulse"></span>
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 text-white text-[10px] font-extrabold flex items-center justify-center border-2 border-white shadow-xs">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 
           {/* Notifications Popover */}
           {showNotifPopover && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+            <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 rounded-t-2xl">
                 <div className="flex items-center gap-2">
                   <Bell className="w-4 h-4 text-slate-900" />
-                  <span className="text-xs font-bold text-slate-900">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span className="bg-slate-100 text-slate-900 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">
-                      {unreadCount} new
+                  <span className="text-xs font-extrabold text-slate-900 tracking-tight">Notifications</span>
+                  {unreadCount > 0 ? (
+                    <span className="bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                      {unreadCount} unread
+                    </span>
+                  ) : (
+                    <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">
+                      All read
                     </span>
                   )}
                 </div>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="text-[11px] text-slate-900 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] text-slate-900 hover:text-black font-bold flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors shadow-2xs"
                   >
                     <CheckCheck className="w-3.5 h-3.5" /> Mark all read
                   </button>
@@ -319,22 +356,44 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
 
               <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
                 {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-slate-400 text-xs font-medium">
-                    No notifications yet
+                  <div className="p-8 text-center text-slate-400 text-xs font-medium flex flex-col items-center gap-2">
+                    <Bell className="w-8 h-8 text-slate-300 stroke-1" />
+                    <span>No notifications yet</span>
                   </div>
                 ) : (
                   notifications.map(notif => (
                     <div
                       key={notif.id}
-                      className={`p-3.5 transition-colors ${notif.is_read ? 'bg-white' : 'bg-slate-50'}`}
+                      onClick={() => handleNotifClick(notif)}
+                      className={`p-3.5 transition-all cursor-pointer flex items-start gap-3 hover:bg-slate-100/80 ${
+                        notif.is_read ? 'bg-white opacity-70' : 'bg-slate-50/90 font-semibold'
+                      }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-bold text-slate-900">{notif.title}</p>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                      <div className="mt-1">
+                        {!notif.is_read ? (
+                          <span className="w-2 h-2 rounded-full bg-slate-900 block shadow-2xs"></span>
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-slate-200 block"></span>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{notif.message}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-xs ${notif.is_read ? 'font-medium text-slate-700' : 'font-bold text-slate-900'} truncate`}>
+                            {notif.title}
+                          </p>
+                          <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                            {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2">
+                          {notif.message}
+                        </p>
+                        {notif.task_id && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-900 mt-1.5 hover:underline">
+                            View Task →
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -344,7 +403,7 @@ export default function Navbar({ onSearchChange, searchTerm, onCreateClick }) {
         </div>
 
         {/* User Profile Badge & Dropdown */}
-        <div className="relative">
+        <div ref={userContainerRef} className="relative">
           <div
             onClick={() => {
               setShowUserDropdown(!showUserDropdown);

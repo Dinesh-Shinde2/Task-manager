@@ -127,22 +127,6 @@ export default function Sidebar() {
                 </div>
               )}
             </NavLink>
-
-            <NavLink to="/notifications" className={navLinkClass}>
-              {({ isActive }) => (
-                <>
-                  <div className="flex items-center gap-2.5">
-                    <Bell className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-700'}`} />
-                    <span>Notifications</span>
-                  </div>
-                  {unreadNotifCount > 0 && (
-                    <span className="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                      {unreadNotifCount}
-                    </span>
-                  )}
-                </>
-              )}
-            </NavLink>
           </nav>
         </div>
 
