@@ -20,7 +20,11 @@ export default function LoginPage() {
       await login(userId, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid User ID or Password');
+      if (!err.response) {
+        setError('Network Connection Error: Cannot reach API server. Please check your connection or wait 30s for server cold start.');
+      } else {
+        setError(err.response?.data?.detail || 'Invalid User ID or Password');
+      }
     } finally {
       setLoading(false);
     }

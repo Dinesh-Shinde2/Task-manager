@@ -4,8 +4,8 @@ import axios from 'axios';
 const getBaseURL = () => {
   let url = import.meta.env.VITE_API_BASE_URL;
 
-  if (!url) {
-    // In production builds (Vercel), default to the live Render backend URL if env var is missing
+  if (!url || url.includes('task-manager-api.onrender.com')) {
+    // In production builds (Vercel), default to the live Render backend URL
     if (import.meta.env.PROD) {
       return 'https://task-manager-9luq.onrender.com/api';
     }
