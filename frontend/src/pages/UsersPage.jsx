@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { userAPI, teamAPI } from '../services/api';
-import { UserCheck, Plus, Edit2, X, AlertCircle } from 'lucide-react';
+import { UserCheck, Plus, Edit2, X, AlertCircle, Users, Layers, LayoutGrid, FolderKanban } from 'lucide-react';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Team Separation states
+  const [selectedTeamTab, setSelectedTeamTab] = useState('all'); // 'all', 'unassigned', or team id string
+  const [viewMode, setViewMode] = useState('grouped'); // 'grouped' or 'table'
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -123,90 +127,257 @@ export default function UsersPage() {
     }
   };
 
+  // Filtered users according to selected tab
+  const filteredUsers = selectedTeamTab === 'all'
+    ? users
+    : selectedTeamTab === 'unassigned'
+    ? users.filter(u => !u.team_id && !u.team_name)
+    : users.filter(u => u.team_id === parseInt(selectedTeamTab) || (teams.find(t => t.id === parseInt(selectedTeamTab))?.name === u.team_name));
+
+  // Teams to display in grouped card mode
+  const displayTeams = selectedTeamTab === 'all'
+    ? teams
+    : selectedTeamTab === 'unassigned'
+    ? []
+    : teams.filter(t => String(t.id) === selectedTeamTab);
+
+  const renderUsersTable = (userList) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm text-slate-700">
+        <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500">
+          <tr>
+            <th className="py-3 px-5">User ID</th>
+            <th className="py-3 px-5">Name</th>
+            <th className="py-3 px-5">Team</th>
+            <th className="py-3 px-5">Role</th>
+            <th className="py-3 px-5">Status</th>
+            <th className="py-3 px-5 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {userList.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="py-8 text-center text-slate-400 font-medium text-xs">
+                No users in this group
+              </td>
+            </tr>
+          ) : (
+            userList.map((u) => (
+              <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                <td className="py-3.5 px-5 font-mono text-xs font-bold text-slate-900">
+                  {u.user_id}
+                </td>
+                <td className="py-3.5 px-5 font-semibold text-slate-800">
+                  {u.name}
+                  {u.email && <span className="block text-xs text-slate-400 font-normal">{u.email}</span>}
+                </td>
+                <td className="py-3.5 px-5">
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200 inline-flex items-center gap-1">
+                    <Users className="w-3 h-3 text-slate-500" />
+                    {u.team_name || 'No Team'}
+                  </span>
+                </td>
+                <td className="py-3.5 px-5">
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                    u.role === 'Admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                  }`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="py-3.5 px-5">
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                    u.status === 'Active' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
+                  }`}>
+                    {u.status}
+                  </span>
+                </td>
+                <td className="py-3.5 px-5 text-right">
+                  <button
+                    onClick={() => handleOpenEdit(u)}
+                    className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    title="Edit User"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <UserCheck className="h-6 w-6 text-slate-900" /> User Management
+            <UserCheck className="h-6 w-6 text-slate-900" /> User Management & Team Allocation
           </h1>
           <p className="text-slate-500 text-xs font-medium mt-0.5">
-            Admin directory to create, edit, activate, or deactivate platform users
+            Admin directory to create, edit, activate, or deactivate platform users by team
           </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer"
         >
           <Plus className="h-4 w-4" /> Create User
         </button>
       </div>
 
-      {/* Users Table matching Section 8 */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-slate-400 font-medium">Loading Users...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="py-3 px-5">User ID</th>
-                  <th className="py-3 px-5">Name</th>
-                  <th className="py-3 px-5">Team</th>
-                  <th className="py-3 px-5">Role</th>
-                  <th className="py-3 px-5">Status</th>
-                  <th className="py-3 px-5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-5 font-mono text-xs font-bold text-slate-900">
-                      {u.user_id}
-                    </td>
-                    <td className="py-3.5 px-5 font-semibold text-slate-800">
-                      {u.name}
-                      {u.email && <span className="block text-xs text-slate-400 font-normal">{u.email}</span>}
-                    </td>
-                    <td className="py-3.5 px-5 text-slate-600 font-medium text-xs">
-                      {u.team_name || 'No Team'}
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase ${
-                        u.role === 'Admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5">
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
-                        u.status === 'Active' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-5 text-right">
-                      <button
-                        onClick={() => handleOpenEdit(u)}
-                        className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                        title="Edit User"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* TEAM SEPARATION SWITCHER BAR */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-slate-700" /> Filter Users by Team ({teams.length} Teams Registered)
+          </span>
+
+          {/* View Mode Toggle: Grouped Cards vs Full Table */}
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setViewMode('grouped')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'grouped' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" /> Group by Team
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'table' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> All Users List
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Desktop Horizontal Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          <button
+            type="button"
+            onClick={() => setSelectedTeamTab('all')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 border cursor-pointer ${
+              selectedTeamTab === 'all'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <span>All Users</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selectedTeamTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+              {users.length} Users
+            </span>
+          </button>
+
+          {teams.map(t => {
+            const count = users.filter(u => u.team_id === t.id || u.team_name === t.name).length;
+            const isSelected = selectedTeamTab === String(t.id);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelectedTeamTab(String(t.id))}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 border cursor-pointer ${
+                  isSelected
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{t.name}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                  {count} Members
+                </span>
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setSelectedTeamTab('unassigned')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 border cursor-pointer ${
+              selectedTeamTab === 'unassigned'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <span>No Team</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selectedTeamTab === 'unassigned' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+              {users.filter(u => !u.team_id && !u.team_name).length} Users
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* Create / Edit User Modal matching Section 8 */}
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center text-slate-400 font-medium text-xs">
+          Loading users directory...
+        </div>
+      ) : viewMode === 'grouped' ? (
+        /* ================= GROUPED BY TEAM CARD SECTIONS ================= */
+        <div className="space-y-6">
+          {displayTeams.map(t => {
+            const teamUsersList = filteredUsers.filter(u => u.team_id === t.id || u.team_name === t.name);
+            return (
+              <div key={t.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                      <FolderKanban className="w-5 h-5 text-slate-900" />
+                      {t.name} Team
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                      Lead: <span className="font-bold text-slate-800">{t.team_lead_name || 'Unassigned'}</span> · {teamUsersList.length} Assigned Members
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-xs font-bold">
+                    {teamUsersList.length} Members
+                  </span>
+                </div>
+
+                {renderUsersTable(teamUsersList)}
+              </div>
+            );
+          })}
+
+          {/* Unassigned Users Card */}
+          {(selectedTeamTab === 'all' || selectedTeamTab === 'unassigned') && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-slate-400" />
+                    Unassigned Team Users
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                    Users not assigned to any specific team
+                  </p>
+                </div>
+
+                <span className="px-3 py-1 bg-slate-200 text-slate-800 rounded-full text-xs font-bold">
+                  {users.filter(u => !u.team_id && !u.team_name).length} Users
+                </span>
+              </div>
+
+              {renderUsersTable(users.filter(u => !u.team_id && !u.team_name))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ================= FULL TABLE LIST VIEW ================= */
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          {renderUsersTable(filteredUsers)}
+        </div>
+      )}
+
+      {/* Create / Edit User Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 my-8">
