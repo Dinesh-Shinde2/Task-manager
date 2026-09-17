@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../context/AuthContext';
-import { taskAPI, commentAPI, attachmentAPI } from '../services/api';
+import { taskAPI, commentAPI, attachmentAPI, userAPI } from '../services/api';
 import TaskTimerBadge from './TaskTimerBadge';
 import ConfirmModal from './ConfirmModal';
 import { 
@@ -21,12 +21,14 @@ import {
   Clock,
   CheckCircle2,
   PlayCircle,
-  XCircle
+  XCircle,
+  Lock
 } from 'lucide-react';
 
 export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated }) {
   const { user } = useAuth();
   const [task, setTask] = useState(null);
+  const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [postingComment, setPostingComment] = useState(false);
@@ -54,20 +56,72 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated
   useEffect(() => {
     if (isOpen && taskId) {
       fetchTaskDetails();
+      userAPI.getUsers().then(res => setUsersList(res.data)).catch(console.error);
     }
   }, [isOpen, taskId]);
 
   if (!isOpen) return null;
 
+  const canModifyStatus = (() => {
+    if (!task || !user) return false;
+    if (user.role === 'Admin') return true;
+    if (task.assigned_to_id && task.assigned_to_id === user.id) return true;
+    if (task.created_by_id && task.created_by_id === user.id) return true;
+    if (task.assignee_name && user.name && task.assignee_name.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+    if (task.creator_name && user.name && task.creator_name.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+    return false;
+  })();
+
+  const canReassignTask = canModifyStatus;
+
   const handleStatusChange = async (newStatus) => {
     if (!task) return;
+    if (!canModifyStatus) {
+      setDialogError({
+        isOpen: true,
+        title: "Action Restricted",
+        message: `Status modification is restricted. Only the assigned user (${task.assignee_name || 'Assigned Member'}) or an Admin can change task status.`
+      });
+      return;
+    }
     try {
       setStatusUpdating(true);
       const res = await taskAPI.updateTask(task.id, { status: newStatus });
       setTask(res.data);
       onTaskUpdated && onTaskUpdated(res.data);
     } catch (err) {
-      console.error(err);
+      setDialogError({
+        isOpen: true,
+        title: "Update Failed",
+        message: err.response?.data?.detail || "Failed to update task status"
+      });
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const handleReassignUser = async (newAssigneeId) => {
+    if (!task) return;
+    if (!canReassignTask) {
+      setDialogError({
+        isOpen: true,
+        title: "Action Restricted",
+        message: `Reassignment is restricted. You can only reassign tasks that are assigned to you or created by you.`
+      });
+      return;
+    }
+    try {
+      setStatusUpdating(true);
+      const assigneeId = newAssigneeId ? parseInt(newAssigneeId) : null;
+      const res = await taskAPI.updateTask(task.id, { assigned_to_id: assigneeId });
+      setTask(res.data);
+      onTaskUpdated && onTaskUpdated(res.data);
+    } catch (err) {
+      setDialogError({
+        isOpen: true,
+        title: "Reassign Failed",
+        message: err.response?.data?.detail || "Failed to reassign task"
+      });
     } finally {
       setStatusUpdating(false);
     }
@@ -196,15 +250,28 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated
               </div>
             </div>
 
+            {/* Restriction Warning Banner */}
+            {!canModifyStatus && task.status !== 'Deleted' && (
+              <div className="px-6 py-2.5 bg-amber-50 border-b border-amber-200/80 text-amber-900 text-xs font-semibold flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                  <span>Status modification & reassignment restricted: Only <strong>{task.assignee_name || 'the assigned user'}</strong> or an <strong>Admin</strong> can edit or reassign this task.</span>
+                </div>
+              </div>
+            )}
+
             {/* Quick Status Bar */}
             <div className="px-6 py-3 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold text-slate-500">Status:</span>
                 <select
                   value={task.status}
-                  disabled={task.status === 'Deleted' || statusUpdating}
+                  disabled={task.status === 'Deleted' || statusUpdating || !canModifyStatus}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${getStatusBadge(task.status)} focus:outline-none cursor-pointer`}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                    !canModifyStatus ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                  } ${getStatusBadge(task.status)} focus:outline-none`}
+                  title={!canModifyStatus ? "Status change restricted to assignee or Admin" : "Change status"}
                 >
                   <option value="Triage">Triage</option>
                   <option value="Pending">Pending</option>
@@ -216,7 +283,7 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated
                 </select>
 
                 {/* Quick Status Action Buttons */}
-                {task.status !== 'Deleted' && (
+                {task.status !== 'Deleted' && canModifyStatus && (
                   <div className="flex items-center gap-1.5 ml-2">
                     {task.status !== 'In Progress' && (
                       <button
@@ -273,10 +340,25 @@ export default function TaskDetailModal({ taskId, isOpen, onClose, onTaskUpdated
                 </div>
 
                 <div>
-                  <span className="text-slate-400 font-medium block">Assigned To</span>
-                  <span className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
-                    <UserIcon className="h-3.5 w-3.5 text-blue-600" /> {task.assignee_name || 'Unassigned'}
-                  </span>
+                  <span className="text-slate-400 font-medium block mb-0.5">Assigned To</span>
+                  {canReassignTask && usersList.length > 0 ? (
+                    <select
+                      value={task.assigned_to_id || ''}
+                      disabled={statusUpdating}
+                      onChange={(e) => handleReassignUser(e.target.value)}
+                      className="w-full text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
+                    >
+                      <option value="">-- Unassigned --</option>
+                      {usersList.map(u => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.user_id})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5" title={!canReassignTask ? "Only assigned user or Admin can reassign" : ""}>
+                      {!canReassignTask && <Lock className="h-3.5 w-3.5 text-slate-400 shrink-0" />}
+                      <UserIcon className="h-3.5 w-3.5 text-blue-600" /> {task.assignee_name || 'Unassigned'}
+                    </span>
+                  )}
                 </div>
 
                 <div>

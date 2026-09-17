@@ -309,9 +309,24 @@ def update_task(
 
     # Permissions check
     if current_user.role != "Admin":
-        if task.created_by_id != current_user.id and task.assigned_to_id != current_user.id:
-            if task.team_id != current_user.team_id:
-                raise HTTPException(status_code=403, detail="Permission denied to update this task")
+        is_owner_or_assignee = (task.created_by_id == current_user.id or task.assigned_to_id == current_user.id)
+
+        # Non-admin members cannot change status of someone else's task
+        if payload.status is not None and payload.status != task.status and not is_owner_or_assignee:
+            raise HTTPException(
+                status_code=403, 
+                detail="Status change restricted: Only the assigned user or an Admin can change task status."
+            )
+
+        # Non-admin members cannot reassign someone else's task
+        if payload.assigned_to_id is not None and payload.assigned_to_id != task.assigned_to_id and not is_owner_or_assignee:
+            raise HTTPException(
+                status_code=403, 
+                detail="Reassignment restricted: You can only reassign tasks that are assigned to you or created by you."
+            )
+
+        if not is_owner_or_assignee and task.team_id != current_user.team_id:
+            raise HTTPException(status_code=403, detail="Permission denied to update this task")
 
     old_status = task.status
     old_assignee_id = task.assigned_to_id
