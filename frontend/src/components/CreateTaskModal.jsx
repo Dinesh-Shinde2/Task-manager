@@ -38,6 +38,20 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated }) {
   // Time tracking popup confirmation state
   const [showTimeTrackerPrompt, setShowTimeTrackerPrompt] = useState(false);
 
+  const getUserTeamId = (targetUser, allTeams) => {
+    if (!targetUser) return '';
+    if (targetUser.team_id) return String(targetUser.team_id);
+    if (targetUser.team_name && Array.isArray(allTeams)) {
+      const match = allTeams.find(t => t.name === targetUser.team_name);
+      if (match) return String(match.id);
+    }
+    if (Array.isArray(allTeams)) {
+      const match = allTeams.find(t => Array.isArray(t.members) && t.members.some(m => String(m.id) === String(targetUser.id) || String(m.user_id) === String(targetUser.user_id)));
+      if (match) return String(match.id);
+    }
+    return '';
+  };
+
   useEffect(() => {
     if (isOpen) {
       setError('');
@@ -54,28 +68,65 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated }) {
         status: 'Pending',
         assign_to_type: 'Self',
         assigned_to_id: user ? user.id : '',
-        team_id: user ? user.team_id || '' : '',
+        team_id: '',
         start_date: currentTodayStr,
         due_date: currentTodayStr,
         scheduled_at: currentResetTimeStr
       });
       setFile(null);
 
-      teamAPI.getTeams()
-        .then(res => setTeams(res.data))
-        .catch(console.error);
+      Promise.all([
+        teamAPI.getTeams(),
+        userAPI.getUsers()
+      ]).then(([teamsRes, usersRes]) => {
+        const loadedTeams = Array.isArray(teamsRes?.data) ? teamsRes.data : [];
+        const loadedUsers = Array.isArray(usersRes?.data) ? usersRes.data : [];
+        setTeams(loadedTeams);
 
-      userAPI.getUsers()
-        .then(res => {
-          if (user?.role === 'Admin') {
-            setAssignableUsers(res.data);
-          } else {
-            setAssignableUsers(res.data.filter(u => u.team_id === user?.team_id));
-          }
-        })
-        .catch(console.error);
+        const filteredUsers = user?.role === 'Admin'
+          ? loadedUsers
+          : loadedUsers.filter(u => u.team_id === user?.team_id || u.team_name === user?.team_name);
+
+        setAssignableUsers(filteredUsers);
+
+        // Auto default team to current user's team
+        const defaultTeamId = getUserTeamId(user, loadedTeams);
+        setFormData(prev => ({
+          ...prev,
+          team_id: defaultTeamId || (loadedTeams.length > 0 ? String(loadedTeams[0].id) : '')
+        }));
+      }).catch(console.error);
     }
   }, [isOpen, user]);
+
+  const handleAssignSelf = () => {
+    const myTeamId = getUserTeamId(user, teams);
+    setFormData(prev => ({
+      ...prev,
+      assign_to_type: 'Self',
+      assigned_to_id: user ? user.id : '',
+      team_id: myTeamId || prev.team_id
+    }));
+  };
+
+  const handleSelectMemberRadio = () => {
+    setFormData(prev => ({
+      ...prev,
+      assign_to_type: 'Member',
+      assigned_to_id: ''
+    }));
+  };
+
+  const handleMemberSelect = (memberIdStr) => {
+    const selectedUser = assignableUsers.find(u => String(u.id) === String(memberIdStr));
+    const memberTeamId = getUserTeamId(selectedUser, teams);
+
+    setFormData(prev => ({
+      ...prev,
+      assigned_to_id: memberIdStr,
+      team_id: memberTeamId || prev.team_id
+    }));
+  };
 
   const handleFormSubmitClick = (e) => {
     e.preventDefault();
@@ -265,11 +316,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated }) {
                   type="radio"
                   name="assign_type"
                   checked={formData.assign_to_type === 'Self'}
-                  onChange={() => setFormData({ 
-                    ...formData, 
-                    assign_to_type: 'Self', 
-                    assigned_to_id: user ? user.id : '' 
-                  })}
+                  onChange={handleAssignSelf}
                   className="text-slate-900 accent-slate-900 h-4 w-4"
                 />
                 Assign to Myself ({user?.name || 'Current User'})
@@ -280,7 +327,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated }) {
                   type="radio"
                   name="assign_type"
                   checked={formData.assign_to_type === 'Member'}
-                  onChange={() => setFormData({ ...formData, assign_to_type: 'Member', assigned_to_id: '' })}
+                  onChange={handleSelectMemberRadio}
                   className="text-slate-900 accent-slate-900 h-4 w-4"
                 />
                 Select Team Member
@@ -295,7 +342,7 @@ export default function CreateTaskModal({ isOpen, onClose, onTaskCreated }) {
                     <select
                       required
                       value={formData.assigned_to_id}
-                      onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
+                      onChange={(e) => handleMemberSelect(e.target.value)}
                       className="w-full appearance-none px-3.5 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 font-semibold cursor-pointer pr-8"
                     >
                       <option value="">-- Choose Member --</option>
